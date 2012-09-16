@@ -41,7 +41,7 @@ if ~keyword_set(nvels) then nvels = 2
 vels=(randomu(seed,nvels,/uniform)-0.5) * 60d * 1000d
 save,vels,filename='vels'+ind+'.sav'
 
-restore,'result/vels17.sav'
+;restore,'result/vels17.sav'
 
 ;restore,'vels14.sav'
 
@@ -56,8 +56,8 @@ if ~(keyword_set(datdir) and keyword_set(outdir)) then begin
 		stop
 	end
 	0: begin
-		datdir = '/Volumes/RAID/HZPF/simulator/current_20120908/data/'
-		outdir = '/Volumes/RAID/HZPF/simulator/current_20120908/result/'
+		datdir = '/Volumes/RAID/HZPF/simulator/current_20120915/data/'
+		outdir = '/Volumes/RAID/HZPF/simulator/current_20120915/result/'
 	end
 	1: begin
 		datdir = '~/research/hzpf_sims/prelim/sbtest/test5/data/'
@@ -85,9 +85,9 @@ init_param={ $
 	op_mask_flag:0b, $
 	well_depth:100000000, $
 	flat_flag:0b, $
-	bg_flag:1b, $
+	bg_flag:0b, $
 	bg_temp:170.d, $
-	filter_flag:1b, $
+	filter_flag:0b, $
 	filter_glass:'kzfsn5short',$
 	filter_thick:6d,$
 	filter_ar_coating_flag:1b}
@@ -161,12 +161,13 @@ endif else begin
 	
 	vs = vels
 		
-	for j=0, n_elements(vs)-1 do hzpfsim_img,vs[j],outs[j],specfile='bt_34.fits',tellfile=contam_tellfile,diagfile = diag_output,calfile=calfile
+	for j=0, n_elements(vs)-1 do hzpfsim_img,vs[j],outs[j],specfile='bt_34.fits',tellfile=contam_tellfile,diagfile = diag_output,calfile=calfile, projection_type = '7_fibers'
 			
 	ind1 = string(0,format='(I1)')
 		
 	on = string(exposure_time,format='(I07)')
-		
+	
+	stop
 	expose,fldir,imdir,exptime=exposure_time,iparam=init_param,outnum=on,diagfile=diag_output
 			
 	extract,fldir,imdir,spdir,tellfile=correct_tellfile,diagfile=diag_output

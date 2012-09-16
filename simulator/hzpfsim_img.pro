@@ -19,7 +19,9 @@
 ;; tellfile - telluric spectrum .sav to contaminate
 ;; specfile - fits file with input spectrum (if none provided it defaults to bt_34)
 
-pro hzpfsim_img, vrad, outfile, tellfile=tellfile, specfile = specfile, diagfile = diagfile, calfile = calfile
+pro hzpfsim_img, vrad, outfile, tellfile=tellfile, specfile = specfile, diagfile = diagfile, calfile = calfile, pixel_sampling = pixel_sampling, projection_type = projection_type
+
+	if ~keyword_set(projection_type) then projection_type = 'basic'
 
 	diag = diagfile ne !null
 	if diag then begin
@@ -36,6 +38,7 @@ pro hzpfsim_img, vrad, outfile, tellfile=tellfile, specfile = specfile, diagfile
 	c = 2.99792458d8	; m/s
 	h = 6.626d-34 ;J s
 	res = 50000.d
+	if ~keyword_set(pixel_sampling) then pixel_sampling = 3d
 	
 	gap=[0.0, 2.79, 2.67, 2.55, 2.45, 2.35, 2.25, 2.16, 2.08, 2.00, 1.93, 1.86, 1.79, 1.73, 1.67, 1.62, 1.56] * 1000 / 18. ;;pixels, center to center
 	ordernum = LINDGEN(17)+46
@@ -74,7 +77,7 @@ pro hzpfsim_img, vrad, outfile, tellfile=tellfile, specfile = specfile, diagfile
 	w = double(w[g])
 	f = double(f[g])
 
-	;upsample by a factor of three (ensures even/sufficient pixel sampling)
+	;upsample (ensures even/sufficient pixel sampling)
 	nel1 = n_elements(w)
 	nel2 = 12.*nel1 ;multiply this for upsampling
 	neww = dindgen(nel2)/double(nel2) * (maxl - minl) + minl
@@ -154,7 +157,7 @@ pro hzpfsim_img, vrad, outfile, tellfile=tellfile, specfile = specfile, diagfile
 	
 	if diag then printf,diaglun,'Avg Photons',mean(pout,/nan)
 	
-		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;;CONVERT TO PHOTONS
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -224,97 +227,18 @@ pro hzpfsim_img, vrad, outfile, tellfile=tellfile, specfile = specfile, diagfile
         if diag then printf,diaglun,'Cal Smoothing Output: '
         if diag then printf,diaglun,diag_output
 	endfor
-
 	
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	;;PARAMETERS FOR MAKING THE SPEC IMAGE
+	;;RESAMPLE AND PROJECT
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-	nw      = n_elements(w)
-	nypix = 22.
-	nxarr = 2048L
-	
-	specimg=dblarr(nxarr, nxarr)
-	wlimg = make_array(nxarr,nxarr,/double,value=!values.f_nan)
-	y0pos= ROUND((nxarr - ROUND(TOTAL(gap)))/2.) ;what does this do?
-	y0poscal=y0pos + nypix + 10 ;;origin of the cal fiber
-	cgap=ROUND(TOTAL(gap, /Cumulative))
-	norders=N_ELEMENTS(lambdalow)
-	warray=MAKE_ARRAY(nxarr, norders, /Double, Value=!Values.F_NAN)
-	li0=value_locate(w,lambdalow)
-	li1=value_locate(w, lambdahigh)
-
-	cal_li0 = value_locate(calw,lambdalow)
-	cal_li1 = value_locate(calw,lambdahigh)
-
-	
-	;;;FOR TESTING
-	;testout = dblarr(no,2,2048)
-
-	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	;;PROJECT INTO SPEC IMAGE (AND WLIMG)
-	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-	for order=0, norders-1 do begin
-		subimg = dblarr(nxarr,nypix) ;the entire order image
-		subfls = (reform(fsms[order,*]))[li0[order]:li1[order]] ;fluxes for the order
-		subwls = reform(w[li0[order]:li1[order]]) ;wls for the order
+	diagout = ''
+	case projection_type of
+		'simple': simple_slit_projection,w,fsms,res,pixel_sampling,wlimg,specimg,calw=calw,calf=calfsms,diag_out=diag_out, warray = warray
+		'7_fibers':fiber_projection, w, fsms, res, pixel_sampling, wlimg, specimg, calw=calw, calf=calfsms, diag_out = diag_out, fiber_size = fiber_size, fiber_gap = fiber_gap, fiber_fractions = fiber_fractions
+		else: stop
+	endcase
+	if diag then printf,diaglun,diagout
 		
-		;;lasers = [10830.,10640.,10530.]/1d4
-;;		for k=0,2 do begin	
-;;			diffs = abs(subwls - lasers[k])
-;;			if min(diffs) gt 1d-5 then continue
-;;			ind = where(diffs eq min(diffs))
-;;			subfls[ind-5:ind+5] = 10.*max(subfls)
-;;			print,'tripped ',k
-;;			;stop
-;;		endfor
-		
-		;get photons/s/m2 from photons/s/m2/micron
-		;mp = (subwls + subwls[1:*])/2. ;midpoints
-		;binsi = mp[1:*] - mp 
-		;binsi = [binsi[0],binsi,binsi[-1]] ;bin sizes
-		;subflsold = subfls
-		;subfls = subfls; * binsi
-		
-		;rebin the sub-spectrum to a given pixel sampling
-		rebin_ryan, 3.d, res, subwls, subfls, wr, fr, min(subwls,/nan), max(subwls,/nan)
-		if diag then printf,diaglun,'n pixels for order ',n_elements(wr)
-
-		;take 5 pixels off edges for safety
-		wr = wr[4:-6]
-		fr = fr[4:-6]
-		
-		;then just take first 2048 pixels to put into detector
-		wsub = wr[0:2047]
-		fsub = fr[0:2047]
-		;;;;testing
-		;testout[order,0,*] = wsub
-		;testout[order,1,*] = fsub
-		;;;;end testing
-		farr = dblarr(2048,nypix)
-		warr = dblarr(2048,nypix)
-		for i=0, nypix-1 do begin
-			farr[*,i] = fsub / double(nypix)
-			warr[*,i] = wsub
-		endfor
-		specimg[0,-(y0pos + cgap[order] - nypix/2)] = farr
-		wlimg[0,-(y0pos + cgap[order] - nypix/2)] = warr
-		warray[0,order] = wsub
-		
-		IF calflag THEN BEGIN ;;added 8/2/2012, CFB
-			subcalwls = reform(calw[cal_li0[order]:cal_li1[order]])
-			subcalfls=(reform(calfsms[order,*]))[cal_li0[order]:cal_li1[order]]
-			rebin_ryan, 3.d, res, subcalwls, subcalfls, calwr, calfr, min(subwls,/nan), max(subwls,/nan)
-			calfr = calfr[4:-6]
-			calfsub = calfr[0:2047]
-			calfarr = dblarr(2048,nypix)
-			for i=0, nypix-1 do calfarr[*,i] = calfsub / double(nypix)
-			specimg[0,-(y0poscal + cgap[order] - nypix/2)] = calfarr
-        ENDIF
-
-	endfor
-	
 
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;;SAVE HEADER AND RESULT
@@ -414,72 +338,6 @@ pro smooth_res_ryan, res, midwl, wl, fl, fsm, diag_output = diag_output
 	diag_output = diag_output+string(13B)+'Kernel Width: '+string(kernel_width,format='(I5)')
 	
 end
-
-pro rebin_ryan, pix, res, wl, fl, wlr, flr, minl, maxl
-	;rebin and conserve flux as found through riemann sum
-	;pix = sampling
-	;res = resolution
-	;wlr/flr = output
-	;minl/maxl = wavelength limits for output arrays
-	
-	;find pixel wavelength
-	pixwl = mean([minl,maxl]) / (res * pix)
-	;pixwl = 1.15d / (res * pix)
-	npn = round((maxl - minl)/pixwl) ;number of pixels in new array
-	newwl = dindgen(npn)/double(npn)*(maxl - minl) + minl ;output wls
-	newfl = dindgen(npn) ;output fls
-
-	np = n_elements(wl) ;number of pixels in old array
-	
-	;find midpoints for the input wavlength array
-	mp = (wl + wl[1:*])/2. ;midpoints
-	xsi = mp[1:*] - mp 
-	xsi = [xsi[0],xsi,xsi[-1]] ;bin sizes
-	rp = wl + xsi/2. ;right points
-	lp = wl - xsi/2. ;left points
-	
-	;and for new array
-	mpn = (newwl + newwl[1:*])/2. ;midpoints
-	xsin = mpn[1:*] - mpn 
-	xsin = [xsin[0],xsin,xsin[-1]] ;bin sizes
-	rpn = newwl + xsin/2. ;right points
-	lpn = newwl - xsin/2. ;left points
-	
-	;loop through all new pixels
-	for i=0, npn-1 do begin
-		ii = where(lp ge lpn[i] and rp le rpn[i],nii) ;all old pixels entirely within new one
-		li = min(ii) - 1 ;leftmost old pixel
-		ri = max(ii) + 1 ;rightmost old pixel
-		tot = 0.d ;total for accumulating 
-		if nii ne 0 then begin
-			;add net flux (fl/wl * wl) from pixels completely within the limits
-			tot += total(fl[ii]*xsi[ii])
-			if li ge 0 then begin
-				;add left fractional flux
-				lf = (rp[li] - lpn[i])/xsi[li]
-				tot += lf * fl[li] * xsi[li]
-			endif
-			if ri le np - 1 then begin
-				;add right fractional flux
-				rf = (rpn[i] - lp[ri])/xsi[ri]
-				tot += rf * fl[ri] * xsi[ri]
-			endif
-		endif else begin
-			;if new array pixles are smaller, or similar size
-			;i haven't coded for this
-			print,"NOT DEALT WITH YET"
-			stop
-		endelse
-		newfl[i] = tot
-	endfor
-	wlr = newwl
-	flr = newfl
-
-end
-
-	
-	
-	
 	
 	
 	

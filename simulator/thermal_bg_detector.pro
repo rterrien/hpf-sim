@@ -148,7 +148,7 @@ pro thermal_bg_detector, det, diag_output = diag_output
 	
 	diag_output = diag_output + 'Total photons: ' + string(total_photons,format='(G20.10)') + string(13B)
 	diag_output = diag_output + '**********************************END THERMAL_BG_DETECTOR.PRO OUTPUT *******************************'
-	stop
+	
 end
 	
 	

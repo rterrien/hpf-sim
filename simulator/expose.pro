@@ -206,6 +206,7 @@ pro expose, prefix_fl, prefix_out, var=var, exptime = exptime, iparam = iparam, 
 		sxaddpar,h,'meansn',meansn
 		sxaddpar,h,'signalcts',det.signal_cts
 		sxaddpar,h,'thermcts',det.thermal_cts
+		sxaddpar,h,'ad_flag',det.ad_flag
 		
 
 		outfile = prefix_out + file_basename(fluence_files[i],'.fits')+'_'+outnum+'_image.fits'

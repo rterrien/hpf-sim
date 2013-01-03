@@ -34,7 +34,9 @@ pro initialize_detector, n_pixels, output_struct, parameters = parameters, verbo
 		if keyword_set(verbose) then diag_output = diag_output + string(13B) + 'warning: output structure already defined'
 	endif
 	
-	;Init structure
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;;INITIALIZE STRUCTURE
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	m=4
 	n=n_pixels
 	det = {n:n_pixels, $
@@ -76,17 +78,54 @@ pro initialize_detector, n_pixels, output_struct, parameters = parameters, verbo
 		   filter_glass:'', $			;either 'kzfsn5' or 'pk50'
 		   filter_ar_coating_flag:0b, $	;flag to use antireflective coating on glass
 		   filter_arr:dblarr(n,n),$ 	;the wavelength, transmission array for the filter
-		   filter_spec:dblarr(2,1000)}	;filter spectrum, for the non-dispersed bg flux
+		   filter_spec:dblarr(2,1000),$ ;filter spectrum, for the non-dispersed bg flux
+		   optical_model_version:1,$	;v1 or v2, optical models from Larry
+		   optical_model_rangechoice:'red',$	;red or blue, choice of using reddest or bluest
+		   optical_model_norders:0d,$			;number of orders in the optical model
+		   optical_model_gap:dblarr(30),$		;the gaps between orders
+		   optical_model_lambdalow:dblarr(30),$	;the lower limits of wavelength for each order
+		   optical_model_lambdahigh:dblarr(30),$;the upper wavelength limits for each order
+		   optical_model_ordernums:dblarr(30),$ ;the order numbers (m)
+		   fiber_scale:.03d,$			;the pixel/micron scale for the fiber
+		   fiber_core_um:100d,$			;fiber core diameter in um
+		   fiber_cladding_um:120d,$		;fiber cladding diameter in um
+		   fiber_buffer_um:125d}		;fiber buffer diameter in um	
 				
 		   
-	;initialize QE
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;;INITIALIZE QE
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 	det.qe[*] = 1.
 	
-	;initialze ipc coeffecients
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;;INITIALIZE IPC
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 	det.ipc_coeff = randomu(seed,n,n,4,/normal) * det.ipc_sd + det.ipc_mean
 	
-	det_names = tag_names(det)
+
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;;INITIALIZE OPTICAL MODEL
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;The optical model may have varying numbers of orders listed, and may use varying
+	;numbers of those orders in the actual projection. Instead of using pointers in the
+	;det structure I just make the arrays big enough (dblarr(30)) and record how many
+	;orders I need (optical_models_norders)
 	
+	define_optical_model,det.optical_model_version,orders_choice = det.optical_model_rangechoice, out_gap = out_gap, out_lambdalow = out_lambdalow, out_lambdahigh = out_lambdahigh, out_norders = out_norders, out_ordernums = out_ordernums
+	
+	det.optical_model_gap = out_gap
+	det.optical_model_lambdalow = out_lambdalow
+	det.optical_model_lambdahigh = out_lambdahigh
+	det.optical_model_norders = out_norders
+	det.optical_model_ordernums = out_ordernums
+	
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;;SET PREDEFINED PARAMETERS FROM TOP-LEVEL SCRIPT
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	
+	det_names = tag_names(det)
 	;Set parameters if they are input
 	if (size(parameters))[2] eq 8 then begin
 		par_names = tag_names(parameters)

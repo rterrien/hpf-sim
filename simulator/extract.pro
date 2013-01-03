@@ -22,7 +22,7 @@
 ;; 	correct the contaminated spectrum
 ;; crimg - do not use
 
-pro extract, prefix_fl, prefix_im, prefix_sp, var = var, tellfile=tellfile, crimg = crimg, diagfile = diagfile
+pro extract, prefix_fl, prefix_im, prefix_sp, var = var, tellfile=tellfile, crimg = crimg, diagfile = diagfile, orders_lambdalow = orders_lambdalow, orders_lambdahigh = orders_lambdahigh, orders_gaps = orders_gaps, projection_type = projection_type, orders_norders = orders_norders, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um
 
 	diag = diagfile ne !null
 	if diag then begin
@@ -30,7 +30,27 @@ pro extract, prefix_fl, prefix_im, prefix_sp, var = var, tellfile=tellfile, crim
 		printf,diaglun,string(13B)+string(13B)+'############# BEGIN EXTRACT.PRO ##############'
 		printf,diaglun,'Run at: ',systime()
 	endif
-		
+	
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;;FIGURE OUT ORDER LOCATIONS
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+	if keyword_set(orders_gaps) then begin
+		gap = orders_gaps
+		lambdalow = orders_lambdalow
+		lambdahigh = orders_lambdahigh
+		n1 = n_elements(gap)
+		n2 = n_elements(lambdalow)
+		n3 = n_elements(lambdahigh)
+		if n1 ne n2 or n1 ne n3 then stop
+	endif else begin
+		print,'WARNING: MAKE SURE THE OPTICAL MODEL INPUTS ARE SET'
+		stop
+	endelse
+
+
+	if ~keyword_set(projection_type) then projection_type = 'simple' 
+	if diag then printf,diaglun,string(13B)+'Projection Type: '+projection_type
 
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;;FIGURE OUT LOCATIONS OF INPUTS / OUTPUTS
@@ -73,7 +93,13 @@ pro extract, prefix_fl, prefix_im, prefix_sp, var = var, tellfile=tellfile, crim
 		;if keyword_set(var) then hzpfex_basic,fname,wname,oname,varfile=vname else $
 		;	hzpfex_basic,fname,wname,oname
 		if keyword_set(crimg) then crflag=1 else crflag=0
-		hzpfex_basic2,fname,wname,oname,tellfile=tellfile,crimg=crflag,diag_output = diag_output
+		
+		case projection_type of
+			'simple': hzpfex_basic2,fname,wname,oname,tellfile=tellfile,crimg=crflag,diag_output = diag_output, orders_lambdalow = lambdalow, orders_lambdahigh = lambdahigh, orders_gaps = gap
+			'7_fibers': hzpfex_7fiber,fname,wname,oname,tellfile=tellfile,crimg=crflag,diag_output = diag_output, orders_lambdalow = lambdalow, orders_lambdahigh = lambdahigh, orders_gaps = gap, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um
+			else: stop
+		endcase
+		
 		if diag then begin
 			printf,diaglun,string(13B)+'## BEGIN HZPFEX_BASIC2 REPORT ##'
 			printf,diaglun,diag_output

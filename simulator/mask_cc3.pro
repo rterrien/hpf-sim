@@ -174,10 +174,10 @@ pro mask_cc3, wl_in, fl_in, rv_out, mask_lp_in, mask_rp_in, mask_we_in, rv_err, 
 		
 		;check if there are any locations where there is not at least one full pixel
 		;btwn left and right
-		if min(r_locs - l_locs) lt 2 then begin
-			print,'mask regions contain < 1 full pixel '
-			stop
-		endif
+	;;	if min(r_locs - l_locs) lt 2 then begin
+;;			print,'mask regions contain < 1 full pixel '
+;;			stop
+;;		endif
 		
 		;add everything together for this velocity shift
 		sumarr = dblarr(nel)
@@ -224,7 +224,7 @@ pro mask_cc3, wl_in, fl_in, rv_out, mask_lp_in, mask_rp_in, mask_we_in, rv_err, 
 		r_locs = value_locate(rp, mask_rp_shifted)+1
 		;check if there are any locations where there is not at least one full pixel
 		;btwn left and right
-		if min(r_locs - l_locs) lt 2 then begin
+		if min(r_locs - l_locs) lt 1 then begin
 			print,'mask regions contain < 1 full pixel '
 			stop
 		endif
@@ -251,6 +251,6 @@ pro mask_cc3, wl_in, fl_in, rv_out, mask_lp_in, mask_rp_in, mask_we_in, rv_err, 
 	
 	rv_out = b_ccf[1]
 	rv_err = b_ccf_errors[1]
-	
+
 end
 	

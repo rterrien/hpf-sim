@@ -62,7 +62,7 @@ pro initialize_detector, n_pixels, output_struct, parameters = parameters, verbo
 		   persist_percent: 1., $		;persistence percentage (float)
 		   persist_flag: 1b, $			;flag to include persistence
 		   persist:dblarr(n,n), $		;"persisted" charge (doubles)
-		   well_depth:80000L, $			;well depth (e-) (long)
+		   well_depth:80000D, $			;well depth (e-) (long)
 		   ipc_flag: 1b, $				;flag to include IPC
 		   ipc_mean: 0.02, $			;mean of IPC coeffs (float)
 		   ipc_sd: 0.002, $				;sd of IPC coeffs (float)

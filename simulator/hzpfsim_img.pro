@@ -23,19 +23,25 @@
 ;; pixel_sampling - number of pixels per resolution element
 ;; projection_type - 'simple' or '7_fibers', which array projection routine to use
 ;; model_version - 1 or 2, which version of optical model to use
-;; upsample_factor - use more pixels after array is read in, to increase fidelity of (riemann-sum) resampling
+;; upsample_factor - use more pixels after array is read in, to increase fidelity of (riemann-sum) resampling. if -1, then do not break into upsample routine
 ;; velshift_style - relativistic or newtonian, defaults to relativistic
 ;; orders_lambdalow/high - array of wavelength limits for the orders
 ;; orders_gaps - array of gaps between orders
 ;; fiber_core/cladding/buffer_um - fiber diameters
 ;; fiber_fractions - 7 fractions for what amount of light goes into each
 ;; fiber_scale - pixels per micron for the fiber
+;; nfibers - the number of fibers to put in the kernel (only used if projection_type is tram1)
+;; echellogram_file - the file from Stuart Barnes with x/y coordinates for the orders (only if tram1)
+;; echellogram_wl_file - the file from Stuart Barnes with wavelength for each order point (only if tram1)
+;; straight_orders - keyword, if set it will set all y positions for each order to the mean of that order
+;; upfactor - factor to upsample the warping/convolving array
 
-pro hzpfsim_img, vrad, outfile, tellfile=tellfile, specfile = specfile, diagfile = diagfile, calfile = calfile, pixel_sampling = pixel_sampling, projection_type = projection_type, upsample_factor = upsample_factor, cal_upsample_factor = cal_upsample_factor, velshift_style = velshift_style, orders_lambdahigh = orders_lambdahigh, orders_lambdalow = orders_lambdalow, orders_gaps = orders_gaps, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um, fiber_fractions = fiber_fractions, fiber_scale = fiber_scale
 
-	if ~keyword_set(projection_type) then projection_type = 'basic'
-	if ~keyword_set(model_version) then model_version = 1
-	if ~keyword_set(velshift_style) then velshift_style = 'relativistic'
+pro hzpfsim_img, vrad, outfile, tellfile=tellfile, specfile = specfile, diagfile = diagfile, calfile = calfile, pixel_sampling = pixel_sampling, projection_type = projection_type, upsample_factor = upsample_factor, cal_upsample_factor = cal_upsample_factor, velshift_style = velshift_style, orders_lambdahigh = orders_lambdahigh, orders_lambdalow = orders_lambdalow, orders_gaps = orders_gaps, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um, fiber_fractions = fiber_fractions, fiber_scale = fiber_scale, nfibers = nfibers, fiber_extra_sep_um = fiber_extra_sep_um, echellogram_file = echellogram_file, echellogram_wl_file = echellogram_wl_file, slitwidth_um = slitwidth_um, straight_orders = straight_orders, upfactor = upfactor
+
+	if n_elements(projection_type) eq 0 then projection_type = 'simple'
+	if n_elements(model_version) eq 0 then model_version = 1
+	if n_elements(velshift_style) eq 0 then velshift_style = 'relativistic'
 
 	diag = diagfile ne !null
 	if diag then begin
@@ -44,6 +50,7 @@ pro hzpfsim_img, vrad, outfile, tellfile=tellfile, specfile = specfile, diagfile
 		printf,diaglun,'Run at: ',systime()
 	endif
 
+	smooth_flag = projection_type eq 'simple' or projection_type eq '7_fibers'
 
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;;DEFINE PHYSICAL AND DETECTOR CONSTANTS
@@ -59,15 +66,19 @@ pro hzpfsim_img, vrad, outfile, tellfile=tellfile, specfile = specfile, diagfile
 	n3 = n_elements(orders_gaps)
 	if n1 ne n2 or n2 ne n3 then stop
 	
-	minl = min(orders_lambdalow)-.05d ;upper and lower limits with a little extra
-	maxl = max(orders_lambdahigh)+.05d
+	;minl = min(orders_lambdalow)-.05d ;upper and lower limits with a little extra
+	;maxl = max(orders_lambdahigh)+.05d
+	minl = .8d
+	maxl = 1.4d
 
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;;READ SPECTRUM
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	if keyword_set(specfile) then begin
 		spec = mrdfits(specfile,0,head)
-		spec = transpose(spec)
+		ss = size(spec)
+		if ss[0] ne 2 then stop
+		if ss[2] gt 4 then spec = transpose(spec)
 	endif else begin
 		spec = readfits('bt_34.fits',head)
 		spec = transpose(spec)
@@ -81,7 +92,6 @@ pro hzpfsim_img, vrad, outfile, tellfile=tellfile, specfile = specfile, diagfile
 	f      = fmod[sort(wmod)]
 	
 	if diag then printf,diaglun,string(13B)+'Spec File: '+specfile
-	
 
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;;CUT DOWN AND UPSAMPLE
@@ -90,20 +100,24 @@ pro hzpfsim_img, vrad, outfile, tellfile=tellfile, specfile = specfile, diagfile
 	g = where(w ge minl - .05d and w le maxl + .05d,ng)
 	w = double(w[g])
 	f = double(f[g])
-
+	
 	;upsample (ensures even/sufficient pixel sampling)
 	if ~keyword_set(upsample_factor) then upsample_factor = 12.
-	nel1 = n_elements(w)
-	nel2 = upsample_factor*nel1 ;multiply this for upsampling
-	neww = dindgen(nel2)/double(nel2) * (maxl - minl) + minl
-	newf = interpol(f,w,neww)
-	
-	w = neww
-	f = newf
+	if upsample_factor ne -1 then begin
+		nel1 = n_elements(w)
+		nel2 = upsample_factor*nel1 ;multiply this for upsampling
+		neww = dindgen(nel2)/double(nel2) * (maxl - minl) + minl
+		newf = interpol(f,w,neww)
+
+		w = neww
+		f = newf
+		
+		usf = string(nel2 / nel1,format='(I3)')
+		if diag then printf,diaglun,string(13B)+'Upsample Factor: '+usf
+
+	endif
 	ng = n_elements(w)
-	
-	usf = string(nel2 / nel1,format='(I3)')
-	if diag then printf,diaglun,string(13B)+'Upsample Factor: '+usf
+
 
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;;VELOCITY SHIFT
@@ -131,13 +145,13 @@ pro hzpfsim_img, vrad, outfile, tellfile=tellfile, specfile = specfile, diagfile
 	jvega   = 0.025d	; Vega mag at J
 	deltaj  = 0.26d		; FWHM of J in microns
 	isowj   = 1.215d	; Isophotal wavelength of J in microns
-	rtel    = 7./2.0d	; radius of telescope in m
+	rtel    = 10./2.0d	; radius of telescope in m
 	telarea = double(!pi*rtel^2)    ; telescope area in m^2
-	tput    = 0.04d		; total instrument throughput 
+	tput    = 0.025d		; total instrument throughput 
 
 	;print, 'Scaling spectrum ...'
 	
-	jmag = 10.0
+	jmag = 9.
 	
 	jmin   = isowj - deltaj/2.0d
 	jmax   = isowj + deltaj/2.0d
@@ -243,23 +257,25 @@ pro hzpfsim_img, vrad, outfile, tellfile=tellfile, specfile = specfile, diagfile
 	;smooth the entire array once for each order
 	;this will produce n_orders copies of the spectrum, each smoothed to the resolution at the middle of order_n
 	no = n_elements(orders_lambdalow) ;number of orders
-	fsms = dblarr(no,ng) ;smoothed array copies
-	calfsms = DBLARR(no,n_elements(calf))   ;;added 8/2/2012, CFB
-	;loop over orders
-	for i=0, no-1 do begin
-		if diag then printf,diaglun,'smoothing order ',i
-		mwl = double(mean([orders_lambdalow[i],orders_lambdahigh[i]]))
-		smooth_res_ryan,res,mwl,w,f,fstemp,diag_output = diag_output
-		if diag then printf,diaglun,'Stellar Smoothing Output: '
-		if diag then printf,diaglun,diag_output
-		fsms[i,*] = double(fstemp)
-		IF calflag THEN BEGIN  ;;added 8/2/2012, CFB
-        	smooth_res_ryan,res,mwl,calw,calf,calfstemp,diag_output = diag_output
-        	calfsms[i,*]=double(calfstemp)
-        ENDIF
-        if diag then printf,diaglun,'Cal Smoothing Output: '
-        if diag then printf,diaglun,diag_output
-	endfor
+	if smooth_flag then begin
+		fsms = dblarr(no,ng) ;smoothed array copies
+		if calflag then calfsms = DBLARR(no,n_elements(calf))   ;;added 8/2/2012, CFB
+		;loop over orders
+		for i=0, no-1 do begin
+			if diag then printf,diaglun,'smoothing order ',i
+			mwl = double(mean([orders_lambdalow[i],orders_lambdahigh[i]]))
+			smooth_res_ryan,res,mwl,w,f,fstemp,diag_output = diag_output
+			if diag then printf,diaglun,'Stellar Smoothing Output: '
+			if diag then printf,diaglun,diag_output
+			fsms[i,*] = double(fstemp)
+			IF calflag THEN BEGIN  ;;added 8/2/2012, CFB
+				smooth_res_ryan,res,mwl,calw,calf,calfstemp,diag_output = diag_output
+				calfsms[i,*]=double(calfstemp)
+			ENDIF
+			if diag then printf,diaglun,'Cal Smoothing Output: '
+			if diag then printf,diaglun,diag_output
+		endfor
+	endif
 	
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;;RESAMPLE AND PROJECT
@@ -270,6 +286,7 @@ pro hzpfsim_img, vrad, outfile, tellfile=tellfile, specfile = specfile, diagfile
 	case projection_type of
 		'simple': simple_slit_projection,w,fsms,res,pixel_sampling,wlimg,specimg,calw=calw,calf=calfsms,diag_out=diag_out, warray = warray, orders_lambdahigh = orders_lambdahigh, orders_lambdalow = orders_lambdalow, orders_gaps = orders_gaps
 		'7_fibers':fiber_projection, w, fsms, res, pixel_sampling, wlimg, specimg, calw=calw, calf=calfsms, diag_out = diag_out, fiber_fractions = fiber_fractions, orders_gaps = orders_gaps, orders_lambdalow = orders_lambdalow, orders_lambdahigh = orders_lambdahigh, warray = warray, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um
+		'tram1': tram_projection3, w, f, res, pixel_sampling, specimg, calw=calw, calf=calf, diag_out = diag_out, fiber_fractions = fiber_fractions, warray = warray, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um, nfibers = nfibers, fiber_extra_sep_um = fiber_extra_sep_um, echellogram_file = echellogram_file, echellogram_wl_file = echellogram_wl_file, slitwidth_um = slitwidth_um, straight_orders = straight_orders, upfactor = upfactor
 		else: stop
 	endcase
 	if diag then printf,diaglun,diagout
@@ -282,12 +299,11 @@ pro hzpfsim_img, vrad, outfile, tellfile=tellfile, specfile = specfile, diagfile
 	h = []
 	sxaddpar,h,'vrad',vrad
 	sxaddpar,h,'tellcontam',telluric
-	
 	;writefits,outfile,specimg
 	mwrfits,specimg,outfile,h,/create
 	nlen = strlen(outfile)
 	pref = strmid(outfile,0,nlen-5)
-	writefits,pref+'_wlimg.fits',wlimg
+	;writefits,pref+'_wlimg.fits',wlimg
 	wfile = outfile+'_wl.sav'
 	save,warray,filename=wfile
 	

@@ -127,8 +127,8 @@ pro expose, prefix_fl, prefix_out, var=var, exptime = exptime, iparam = iparam, 
 		flu = mrdfits(fluence_files[i],0,hdr)
 		
 		;get wavelength image
-		wlim = mrdfits(wlim_files[i],0)
-		set_wlim_detector,det,wlim
+		;wlim = mrdfits(wlim_files[i],0)
+		;set_wlim_detector,det,wlim
 		
 		if det.qe_flag then set_qewl_detector,det,qearr
 		
@@ -214,7 +214,7 @@ pro expose, prefix_fl, prefix_out, var=var, exptime = exptime, iparam = iparam, 
 		if diag then printf,diaglun,string(13B)+'Expose Output: '+outfile
 		
 		mwrfits,cf,outfile,h,/create
-		
+
 		
 	endfor
 	

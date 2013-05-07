@@ -92,14 +92,15 @@ pro fiber_projection, w, f, res, pixel_sampling, wlimg, specimg, calw=calw, calf
 	
 	
 	
-	
-	calflsr = dblarr(no,array_pix) ;resampled cal fiber
-	calwlsr = dblarr(no,array_pix) ;cal wavelengths
+	if calflag then begin
+		calflsr = dblarr(no,array_pix) ;resampled cal fiber
+		calwlsr = dblarr(no,array_pix) ;cal wavelengths
+		cal_li0 = value_locate(calw,lambdalow) ;same as above but for cal fiber
+		cal_li1 = value_locate(calw,lambdahigh)
+	endif
 	li0=value_locate(w,lambdalow) ;what array index does lambdalow correspond to?
 	li1=value_locate(w, lambdahigh) ;what array index does lambdahigh correspond to?
 
-	cal_li0 = value_locate(calw,lambdalow) ;same as above but for cal fiber
-	cal_li1 = value_locate(calw,lambdahigh)
 	
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;;FILL IN ORDERS
@@ -238,6 +239,7 @@ pro fiber_projection, w, f, res, pixel_sampling, wlimg, specimg, calw=calw, calf
 		
 	endfor
 	
+
 end
 
 

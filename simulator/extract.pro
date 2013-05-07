@@ -22,7 +22,7 @@
 ;; 	correct the contaminated spectrum
 ;; crimg - do not use
 
-pro extract, prefix_fl, prefix_im, prefix_sp, var = var, tellfile=tellfile, crimg = crimg, diagfile = diagfile, orders_lambdalow = orders_lambdalow, orders_lambdahigh = orders_lambdahigh, orders_gaps = orders_gaps, projection_type = projection_type, orders_norders = orders_norders, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um
+pro extract, prefix_fl, prefix_im, prefix_sp, var = var, tellfile=tellfile, crimg = crimg, diagfile = diagfile, orders_lambdalow = orders_lambdalow, orders_lambdahigh = orders_lambdahigh, orders_gaps = orders_gaps, projection_type = projection_type, orders_norders = orders_norders, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um, nfibers = nfibers, fiber_extra_sep_um = fiber_extra_sep_um, echellogram_file = echellogram_file, echellogram_wl_file = echellogram_wl_file, straight_orders = straight_orders
 
 	diag = diagfile ne !null
 	if diag then begin
@@ -97,6 +97,7 @@ pro extract, prefix_fl, prefix_im, prefix_sp, var = var, tellfile=tellfile, crim
 		case projection_type of
 			'simple': hzpfex_basic2,fname,wname,oname,tellfile=tellfile,crimg=crflag,diag_output = diag_output, orders_lambdalow = lambdalow, orders_lambdahigh = lambdahigh, orders_gaps = gap
 			'7_fibers': hzpfex_7fiber,fname,wname,oname,tellfile=tellfile,crimg=crflag,diag_output = diag_output, orders_lambdalow = lambdalow, orders_lambdahigh = lambdahigh, orders_gaps = gap, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um
+			'tram1': hzpfex_tram2, fname, wname, oname, tellfile = tellfile, crimg = crflag, diag_output = diag_output, orders_lambdalow = orders_lambdalow, orders_lambdahigh = orders_lambdahigh, orders_gaps = gap, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um,nfibers = nfibers, fiber_extra_sep_um = fiber_extra_sep_um, echellogram_file = echellogram_file, echellogram_wl_file = echellogram_wl_file, straight_orders = straight_orders
 			else: stop
 		endcase
 		

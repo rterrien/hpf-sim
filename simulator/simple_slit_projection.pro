@@ -23,7 +23,7 @@
 ;; specimg - image of fluxes
 ;; warray - wavelength array (for extraction)
 
-pro simple_slit_projection, w, f, res, pixel_sampling, wlimg, specimg, calw=calw, calf=calf, diag_out = diag_out, warray = warray
+pro simple_slit_projection, w, f, res, pixel_sampling, wlimg, specimg, calw=calw, calf=calf, diag_out = diag_out, warray = warray, orders_lambdahigh = orders_lambdahigh, orders_lambdalow = orders_lambdalow, orders_gaps = orders_gaps
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -36,10 +36,23 @@ pro simple_slit_projection, w, f, res, pixel_sampling, wlimg, specimg, calw=calw
 	
 	no = n_elements(f[*,0])
 	
-	gap=[0.0, 2.79, 2.67, 2.55, 2.45, 2.35, 2.25, 2.16, 2.08, 2.00, 1.93, 1.86, 1.79, 1.73, 1.67, 1.62, 1.56] * 1000 / 18. ;;pixels, center to center
-	ordernum = LINDGEN(17)+46
-	lambdalow=[13173, 12893, 12624, 12366, 12119, 11881, 11653, 11433, 11221, 11017, 10821, 10631, 10448, 10270, 10099, 9934, 9773]/1d4
-	lambdahigh=[13390, 13105, 12832, 12570, 12319, 12078, 11845, 11622, 11407, 11199, 10999, 10806, 10620, 10440, 10266, 10098, 9935]/1d4
+;;	gap=[0.0, 2.79, 2.67, 2.55, 2.45, 2.35, 2.25, 2.16, 2.08, 2.00, 1.93, 1.86, 1.79, 1.73, 1.67, 1.62, 1.56] * 1000 / 18. ;;pixels, center to center
+;;	ordernum = LINDGEN(17)+46
+;;	lambdalow=[13173, 12893, 12624, 12366, 12119, 11881, 11653, 11433, 11221, 11017, 10821, 10631, 10448, 10270, 10099, 9934, 9773]/1d4
+;;	lambdahigh=[13390, 13105, 12832, 12570, 12319, 12078, 11845, 11622, 11407, 11199, 10999, 10806, 10620, 10440, 10266, 10098, 9935]/1d4
+	if keyword_set(orders_gaps) then begin
+		gap = orders_gaps
+		lambdalow = orders_lambdalow
+		lambdahigh = orders_lambdahigh
+		n1 = n_elements(gap)
+		n2 = n_elements(lambdalow)
+		n3 = n_elements(lambdahigh)
+		if n1 ne n2 or n1 ne n3 then stop
+	endif else begin
+		print,'WARNING: MAKE SURE THE OPTICAL MODEL INPUTS ARE SET'
+		stop
+	endelse
+
 
 
 	nw      = n_elements(w)
@@ -57,8 +70,10 @@ pro simple_slit_projection, w, f, res, pixel_sampling, wlimg, specimg, calw=calw
 
 	
 	nxarr = 2048
-	calflsr = dblarr(no,nxarr) ;resampled cal fiber
-	calwlsr = dblarr(no,nxarr) ;cal wavelengths
+	if calflag then begin
+		calflsr = dblarr(no,nxarr) ;resampled cal fiber
+		calwlsr = dblarr(no,nxarr) ;cal wavelengths
+	endif
 	li0=value_locate(w,lambdalow) ;what array index does lambdalow correspond to?
 	li1=value_locate(w, lambdahigh) ;what array index does lambdahigh correspond to?
 

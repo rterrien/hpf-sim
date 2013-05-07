@@ -35,6 +35,13 @@ exposure_time = 900d
 
 if ~keyword_set(nvels) then nvels = 2
 vels=(randomu(seed,nvels,/uniform)-0.5) * 60d * 1000d
+
+;restore,'/gpfs/home/rct151/scratch/simulator/out/maskrvs_66_0.sav'
+
+;vels = rvs
+;vels = rvs[0]
+
+;vels = replicate(0d,nvels)
 ;restore,'result/vels28.sav'
 ;nvels = n_elements(vels)
 ;save,vels,filename='vels'+ind+'.sav'
@@ -61,6 +68,10 @@ if ~(keyword_set(datdir) and keyword_set(outdir)) then begin
 		datdir = '~/research/hzpf_sims/prelim/sbtest/test5/data/'
 		outdir = '~/research/hzpf_sims/prelim/sbtest/test5/out/'
 	end
+	2: begin
+		datdir = '/gpfs/scratch/rct151/simulator/data/'
+		outdir = '/gpfs/scratch/rct151/simulator/out/'
+	end
 	endcase
 endif
 
@@ -82,7 +93,7 @@ init_param={ $
 	reset_noise:0L, $
 	photon_noise_Flag:0b, $
 	op_mask_flag:0b, $
-	well_depth:100000000, $
+	well_depth:1d30, $
 	flat_flag:0b, $
 	bg_flag:0b, $
 	bg_temp:170.d, $
@@ -99,14 +110,25 @@ define_optical_model, init_param.optical_model_version, orders_choice=init_param
 ;out_gap, out_lambdalow/high, out_norders, out_ordernums
 
 ;get the fiber params 
-fiber_fractions = replicate(1/7d,7)
+;;fiber_fractions = replicate(1/7d,7)
+;;fiber_scale = 0.03d
+;;fiber_core_um = 100d
+;;fiber_cladding_um = 120d
+;;fiber_buffer_um = 125d
+;;nfibers = 7
+
+fiber_fractions = [.5d,.5d]
 fiber_scale = 0.03d
-fiber_core_um = 100d
-fiber_cladding_um = 120d
-fiber_buffer_um = 125d
+fiber_core_um = 300d
+fiber_cladding_um = 0d
+fiber_buffer_um = 500d
+nfibers = 2
+slitwidth_um = 100d
+fiber_extra_sep_um = 200d
+
 
 ;other parameters
-projection_type = '7_fibers' ;simple or 7_fibers
+projection_type = 'tram1' ;simple or 7_fibers or tram1
 pixel_sampling=3.2
 upsample_factor = 12
 cal_upsample_factor=.1
@@ -121,8 +143,13 @@ correct_tellfile = '';'tellspec2_detected.fits'
 mask_tellfile = '';'tellspec2_detected.fits'
 ;calfile = 'cavity1_measured_watts_per_micron.fits'
 ;calfile = 'comb_120924_ll.fits'
-calfiles = file_search('/Volumes/RAID/HZPF/simulator/current_20120915/ffp_specs/*.fits',/fully_qualify_path)
-calfile = calfiles[3]
+;calfiles = file_search('/Volumes/RAID/HZPF/simulator/current_20120915/ffp_specs/*.fits',/fully_qualify_path)
+;calfile = calfiles[3]
+echellogram_file = 'hpf demag=2-0x f8-5 2012dec15 v10-1-echelleogram.dat'
+echellogram_wl_file = 'hpf demag=2-0x f8-5 2012dec15 v10-1-wavelengths.dat'
+
+straight_orders = 1
+upfactor = 2.
 
 
 
@@ -160,7 +187,7 @@ if nnum gt 100 then begin
 	
 		vs = vels[i*100 : i*100+99]
 		
-		for j=0, 99 do hzpfsim_img,vs[j],outs[i*n_elements(vs)+j],specfile=specfile,tellfile=contam_tellfile,diagfile = diag_output, calfile=calfile,projection_type = projection_type, pixel_sampling=pixel_sampling, upsample_factor = upsample_factor, cal_upsample_factor=cal_upsample_factor, velshift_style = velshift_style, orders_lambdahigh = out_lambdahigh, orders_lambdalow = out_lambdalow, orders_gaps = out_gap, fiber_fractions = fiber_fractions, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um
+		for j=0, 99 do hzpfsim_img,vs[j],outs[i*n_elements(vs)+j],specfile=specfile,tellfile=contam_tellfile,diagfile = diag_output, calfile=calfile,projection_type = projection_type, pixel_sampling=pixel_sampling, upsample_factor = upsample_factor, cal_upsample_factor=cal_upsample_factor, velshift_style = velshift_style, orders_lambdahigh = out_lambdahigh, orders_lambdalow = out_lambdalow, orders_gaps = out_gap, fiber_fractions = fiber_fractions, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um, slitwidth_um = slitwidth_um
 		
 		;calfile = 'cavity1_measured_watts_per_micron.fits'
 			
@@ -169,7 +196,7 @@ if nnum gt 100 then begin
 		
 		on = string(exposure_time,format='(I07)')
 		
-		;expose,fldir,imdir,exptime=900d,iparam={dark_current:0.05d, qe_flag:1b, qe_loc:'25', persist_flag:0b, ipc_flag:1b, ipc_mean:0.02, ipc_sd:0.002, read_noise:18L, reset_noise:0L, photon_noise_Flag:1b, op_mask_flag:0b, well_depth:100000000, flat_flag:0b, bg_flag:0b, bg_temp:200.d, bg_str:1d},outnum=on,diagfile=diag_output
+		expose,fldir,imdir,exptime=900d,iparam={dark_current:0.05d, qe_flag:1b, qe_loc:'25', persist_flag:0b, ipc_flag:1b, ipc_mean:0.02, ipc_sd:0.002, read_noise:18L, reset_noise:0L, photon_noise_Flag:1b, op_mask_flag:0b, well_depth:100000000, flat_flag:0b, bg_flag:0b, bg_temp:200.d, bg_str:1d},outnum=on,diagfile=diag_output
 		
 		expose,fldir,imdir,exptime=exposure_time,iparam=init_param,outnum=on,diagfile=diag_output
 			
@@ -201,7 +228,7 @@ endif else begin
 	
 	;for j=0, n_elements(vs)-1 do hzpfsim_img,vs[j],outs[j],specfile='bt_34_extended.fits',tellfile=contam_tellfile,diagfile = diag_output,calfile=calfiles[3], projection_type = '7_fibers', model_version = 2, pixel_sampling=3.2, upsample_factor = 12, cal_upsample_factor=.1, velshift_style = 'newtonian'
 	
-	for j=0, n_elements(vs)-1 do hzpfsim_img,vs[j],outs[j],specfile=specfile,tellfile=contam_tellfile,diagfile = diag_output,calfile=calfile, projection_type = projection_type, pixel_sampling=pixel_sampling, upsample_factor = upsample_factor, cal_upsample_factor=cal_upsample_factor, velshift_style = velshift_style, orders_lambdahigh = out_lambdahigh, orders_lambdalow = out_lambdalow, orders_gaps = out_gap, fiber_fractions = fiber_fractions, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um
+	for j=0, n_elements(vs)-1 do hzpfsim_img,vs[j],outs[j],specfile=specfile,tellfile=contam_tellfile,diagfile = diag_output,calfile=calfile, projection_type = projection_type, pixel_sampling=pixel_sampling, upsample_factor = upsample_factor, cal_upsample_factor=cal_upsample_factor, velshift_style = velshift_style, orders_lambdahigh = out_lambdahigh, orders_lambdalow = out_lambdalow, orders_gaps = out_gap, fiber_fractions = fiber_fractions, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um, nfibers = nfibers, fiber_extra_sep_um = fiber_extra_sep_um, echellogram_file = echellogram_file, echellogram_wl_file = echellogram_wl_file, slitwidth_um = slitwidth_um, straight_orders = straight_orders, upfactor = upfactor
 
 			
 	ind1 = string(0,format='(I1)')
@@ -211,7 +238,7 @@ endif else begin
 	
 	expose,fldir,imdir,exptime=exposure_time,iparam=init_param,outnum=on,diagfile=diag_output
 			
-	extract,fldir,imdir,spdir,tellfile=correct_tellfile,diagfile=diag_output,projection_type = projection_type,orders_lambdahigh = out_lambdahigh, orders_lambdalow = out_lambdalow, orders_gaps = out_gap, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um
+	extract,fldir,imdir,spdir,tellfile=correct_tellfile,diagfile=diag_output,projection_type = projection_type,orders_lambdahigh = out_lambdahigh, orders_lambdalow = out_lambdalow, orders_gaps = out_gap, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um, nfibers = nfibers, fiber_extra_sep_um = fiber_extra_sep_um, echellogram_file = echellogram_file, echellogram_wl_file = echellogram_wl_file, straight_orders = straight_orders
 	
 	
 	test_mask_sb2,spdir,'vels'+ind+'.sav','maskrvs_'+ind+'_'+ind1+'.sav',maskfile=maskfile,weightsfile=weightsfile,tellfile=mask_tellfile,diagfile=diag_output
@@ -234,7 +261,7 @@ spawn,'mv -f dv_maskrvs_*.sav '+outdir
 spawn,'mv -f maskrvs_*.sav '+outdir
 spawn,'mv -f sns_maskrvs_*.sav '+outdir
 spawn,'rm -f *_tmp'
-spawn,'mv -f vels* '+outdir
+;spawn,'mv -f vels* '+outdir
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

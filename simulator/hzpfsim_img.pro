@@ -31,13 +31,12 @@
 ;; fiber_fractions - 7 fractions for what amount of light goes into each
 ;; fiber_scale - pixels per micron for the fiber
 ;; nfibers - the number of fibers to put in the kernel (only used if projection_type is tram1)
-;; echellogram_file - the file from Stuart Barnes with x/y coordinates for the orders (only if tram1)
-;; echellogram_wl_file - the file from Stuart Barnes with wavelength for each order point (only if tram1)
+;; optical_model - choice of 'barnes_1212' or 'ramsey_513'
 ;; straight_orders - keyword, if set it will set all y positions for each order to the mean of that order
 ;; upfactor - factor to upsample the warping/convolving array
 
 
-pro hzpfsim_img, vrad, outfile, tellfile=tellfile, specfile = specfile, diagfile = diagfile, calfile = calfile, pixel_sampling = pixel_sampling, projection_type = projection_type, upsample_factor = upsample_factor, cal_upsample_factor = cal_upsample_factor, velshift_style = velshift_style, orders_lambdahigh = orders_lambdahigh, orders_lambdalow = orders_lambdalow, orders_gaps = orders_gaps, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um, fiber_fractions = fiber_fractions, fiber_scale = fiber_scale, nfibers = nfibers, fiber_extra_sep_um = fiber_extra_sep_um, echellogram_file = echellogram_file, echellogram_wl_file = echellogram_wl_file, slitwidth_um = slitwidth_um, straight_orders = straight_orders, upfactor = upfactor
+pro hzpfsim_img, vrad, outfile, tellfile=tellfile, specfile = specfile, diagfile = diagfile, calfile = calfile, pixel_sampling = pixel_sampling, projection_type = projection_type, upsample_factor = upsample_factor, cal_upsample_factor = cal_upsample_factor, velshift_style = velshift_style, orders_lambdahigh = orders_lambdahigh, orders_lambdalow = orders_lambdalow, orders_gaps = orders_gaps, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um, fiber_fractions = fiber_fractions, fiber_scale = fiber_scale, nfibers = nfibers, fiber_extra_sep_um = fiber_extra_sep_um, optical_model = optical_model, slitwidth_um = slitwidth_um, straight_orders = straight_orders, upfactor = upfactor
 
 	if n_elements(projection_type) eq 0 then projection_type = 'simple'
 	if n_elements(model_version) eq 0 then model_version = 1
@@ -286,7 +285,7 @@ pro hzpfsim_img, vrad, outfile, tellfile=tellfile, specfile = specfile, diagfile
 	case projection_type of
 		'simple': simple_slit_projection,w,fsms,res,pixel_sampling,wlimg,specimg,calw=calw,calf=calfsms,diag_out=diag_out, warray = warray, orders_lambdahigh = orders_lambdahigh, orders_lambdalow = orders_lambdalow, orders_gaps = orders_gaps
 		'7_fibers':fiber_projection, w, fsms, res, pixel_sampling, wlimg, specimg, calw=calw, calf=calfsms, diag_out = diag_out, fiber_fractions = fiber_fractions, orders_gaps = orders_gaps, orders_lambdalow = orders_lambdalow, orders_lambdahigh = orders_lambdahigh, warray = warray, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um
-		'tram1': tram_projection3, w, f, res, pixel_sampling, specimg, calw=calw, calf=calf, diag_out = diag_out, fiber_fractions = fiber_fractions, warray = warray, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um, nfibers = nfibers, fiber_extra_sep_um = fiber_extra_sep_um, echellogram_file = echellogram_file, echellogram_wl_file = echellogram_wl_file, slitwidth_um = slitwidth_um, straight_orders = straight_orders, upfactor = upfactor
+		'tram1': tram_projection3, w, f, res, pixel_sampling, specimg, calw=calw, calf=calf, diag_out = diag_out, fiber_fractions = fiber_fractions, warray = warray, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um, nfibers = nfibers, fiber_extra_sep_um = fiber_extra_sep_um, optical_model = optical_model, slitwidth_um = slitwidth_um, straight_orders = straight_orders, upfactor = upfactor
 		else: stop
 	endcase
 	if diag then printf,diaglun,diagout

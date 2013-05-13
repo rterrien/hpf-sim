@@ -28,14 +28,13 @@
 ;; fiber_core/cladding/buffer - diameters of elements of fiber in um
 ;; nfibers - number of fibers to put into the kernel
 ;; fiber_extra_sep_um - extra separation between fibers
-;; echellogram_file - file in Barnes' format describing the positions of the orders
-;; echellogram_wl_file - file in Barnes' format linking positions to wavelengths
+;; optical model - choice of 'barnes_1212' or 'ramsey_513' orders, wavelengths (nm), and x/y positions in mm
 ;; slitwidth_um - width of the slit
 ;; straight_orders - keyword, if set it will set all y positions for each order to the mean of that order
 ;; upfactor - factor to upsample the warping/convolving array
 
 
-pro tram_projection3, w, f, res, pixel_sampling, specimg, calw=calw, calf=calf, diag_out = diag_out, fiber_fractions = fiber_fractions, warray = warray, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um, nfibers = nfibers, fiber_extra_sep_um = fiber_extra_sep_um, echellogram_file = echellogram_file, echellogram_wl_file = echellogram_wl_file, slitwidth_um = slitwidth_um, straight_orders = straight_orders, upfactor = upfactor
+pro tram_projection3, w, f, res, pixel_sampling, specimg, calw=calw, calf=calf, diag_out = diag_out, fiber_fractions = fiber_fractions, warray = warray, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um, nfibers = nfibers, fiber_extra_sep_um = fiber_extra_sep_um, optical_model = optical_model, slitwidth_um = slitwidth_um, straight_orders = straight_orders, upfactor = upfactor
 
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;;PARAMETERS
@@ -59,30 +58,50 @@ pro tram_projection3, w, f, res, pixel_sampling, specimg, calw=calw, calf=calf, 
 	;;GET ECHELLOGRAM INFO
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-	;set file defaults
-	if n_elements(echellogram_wl_file) eq 0 then echellogram_wl_file = 'hpf demag=2-0x f8-5 2012dec15 v10-1-wavelengths.dat'
-	if n_elements(echellogram_file) eq 0 then echellogram_file = 'hpf demag=2-0x f8-5 2012dec15 v10-1-echelleogram.dat'
-	
-	pixel_size = 18d-3 ;mm
-	;read in files
-	inp = dblarr(23,29)
-	openr,1,echellogram_wl_file
-	readf,1,inp
-	close,1
+;;	 ;set file defaults
+;;	 if n_elements(echellogram_wl_file) eq 0 then echellogram_wl_file = 'hpf demag=2-0x f8-5 2012dec15 v10-1-wavelengths.dat'
+;;	 if n_elements(echellogram_file) eq 0 then echellogram_file = 'hpf demag=2-0x f8-5 2012dec15 v10-1-echelleogram.dat'
+;;	
+;;	 pixel_size = 18d-3 ;mm
+;;	 ;read in files
+;;	 inp = dblarr(23,29)
+;;	 openr,1,echellogram_wl_file
+;;	 readf,1,inp
+;;	 close,1
+;;
+;;	 inp2 = dblarr(42,29)
+;;	 openr,1,echellogram_file
+;;	 readf,1,inp2
+;;	 close,1
+;;	
+;;	 ;process according to Barnes' format
+;;	 evens = indgen(21) * 2
+;;	 odds = indgen(21) * 2 + 1
+;;	 ys = inp2[odds,*]
+;;	 xs = inp2[evens,*]
+;;	 ws = inp[2:*,*]
+;;	
+;;	 ;if requested, straighten out the orders (debugging tool to examine the effects of curvature)
+;;	
+;;	 ys = -1d * ys ;flip y around (stuart does this in his code)
 
-	inp2 = dblarr(42,29)
-	openr,1,echellogram_file
-	readf,1,inp2
-	close,1
+	pixel_size = 18d-3 ;mm
 	
-	;process according to Barnes' format
-	evens = indgen(21) * 2
-	odds = indgen(21) * 2 + 1
-	ys = inp2[odds,*]
-	xs = inp2[evens,*]
-	ws = inp[2:*,*]
+	if n_elements(optical_model) eq 0 then optical_model = 'ramsey_513'
+	case optical_model of
+		'barnes_1212': optical_model_file = 'model_barnes_1212.sav'
+		'ramsey_513': optical_model_file = 'model_ramsey_513.sav'
+		else: optical_model_file = 'model_ramsey_513.sav'
+	endcase
 	
-	;if requested, straighten out the orders (debugging tool to examine the effects of curvature)
+	restore,optical_model_file
+	
+	
+	
+	xs = model.xs
+	ys = model.ys
+	ws = model.ws
+	
 	if keyword_set(straight_orders) then begin
 		mod_echel, xs, ys, ws, xs1, ys1, ws1
 		xs_old = xs
@@ -92,10 +111,9 @@ pro tram_projection3, w, f, res, pixel_sampling, specimg, calw=calw, calf=calf, 
 		ys = ys1
 		ws = ws1
 	endif	
+
 	
-	ys = -1d * ys ;flip y around (stuart does this in his code)
-	
-	norders = (size(inp2))[2]
+	norders = n_elements(model.orders)
 	
 	;make the warray, although this is not *required* for extraction now
 	warray=MAKE_ARRAY(2048, norders, /Double, Value=!Values.F_NAN)

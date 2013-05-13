@@ -66,37 +66,65 @@ end
 
 
 
-PRO hzpfex_tram2, infile, inwlfile, outfile, varfile = varfile, tellfile = tellfile, crimg = crimg, diag_output = diag_output, orders_lambdalow = orders_lambdalow, orders_lambdahigh = orders_lambdahigh, orders_gaps = orders_gaps, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um,nfibers = nfibers, fiber_extra_sep_um = fiber_extra_sep_um, echellogram_file = echellogram_file, echellogram_wl_file = echellogram_wl_file, straight_orders = straight_orders
+PRO hzpfex_tram2, infile, inwlfile, outfile, varfile = varfile, tellfile = tellfile, crimg = crimg, diag_output = diag_output, orders_lambdalow = orders_lambdalow, orders_lambdahigh = orders_lambdahigh, orders_gaps = orders_gaps, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um,nfibers = nfibers, fiber_extra_sep_um = fiber_extra_sep_um, optical_model = optical_model, straight_orders = straight_orders
 
 	
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;;GET ECHELLOGRAM INFO (copied from tram_projection3)
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;;	 ;set file defaults
+;;	 if n_elements(echellogram_wl_file) eq 0 then echellogram_wl_file = 'hpf demag=2-0x f8-5 2012dec15 v10-1-wavelengths.dat'
+;;	 if n_elements(echellogram_file) eq 0 then echellogram_file = 'hpf demag=2-0x f8-5 2012dec15 v10-1-echelleogram.dat'
+;;	
+;;	 pixel_size = 18d-3 ;mm
+;;	 ;read in files
+;;	 inp = dblarr(23,29)
+;;	 openr,1,echellogram_wl_file
+;;	 readf,1,inp
+;;	 close,1
+;;
+;;	 inp2 = dblarr(42,29)
+;;	 openr,1,echellogram_file
+;;	 readf,1,inp2
+;;	 close,1
+;;	
+;;	 ;process according to Barnes' format
+;;	 evens = indgen(21) * 2
+;;	 odds = indgen(21) * 2 + 1
+;;	 ys = inp2[odds,*]
+;;	 xs = inp2[evens,*]
+;;	 ws = inp[2:*,*]
+;;	
+;;	 ;if requested, straighten out the orders (debugging tool to examine the effects of curvature)
+;;	 if keyword_set(straight_orders) then begin
+;;		 mod_echel, xs, ys, ws, xs1, ys1, ws1
+;;		 xs_old = xs
+;;		 ys_old = ys
+;;		 ws_old = ws
+;;		 xs = xs1
+;;		 ys = ys1
+;;		 ws = ws1
+;;	 endif	
+;;	
+;;	 ys = -1d * ys ;flip y around (stuart does this in his code)
+;;	
+;;	 norders = (size(inp2))[2]
 
-	;set file defaults
-	if n_elements(echellogram_wl_file) eq 0 then echellogram_wl_file = 'hpf demag=2-0x f8-5 2012dec15 v10-1-wavelengths.dat'
-	if n_elements(echellogram_file) eq 0 then echellogram_file = 'hpf demag=2-0x f8-5 2012dec15 v10-1-echelleogram.dat'
-	
 	pixel_size = 18d-3 ;mm
-	;read in files
-	inp = dblarr(23,29)
-	openr,1,echellogram_wl_file
-	readf,1,inp
-	close,1
 
-	inp2 = dblarr(42,29)
-	openr,1,echellogram_file
-	readf,1,inp2
-	close,1
+	case optical_model of
+		'barnes_1212': optical_model_file = 'model_barnes_1212.sav'
+		'ramsey_513': optical_model_file = 'model_ramsey_513.sav'
+		else: optical_model_file = 'model_ramsey_513.sav'
+	endcase
 	
-	;process according to Barnes' format
-	evens = indgen(21) * 2
-	odds = indgen(21) * 2 + 1
-	ys = inp2[odds,*]
-	xs = inp2[evens,*]
-	ws = inp[2:*,*]
+	restore,optical_model_file
 	
-	;if requested, straighten out the orders (debugging tool to examine the effects of curvature)
+	xs = model.xs
+	ys = model.ys
+	ws = model.ws
+	
 	if keyword_set(straight_orders) then begin
 		mod_echel, xs, ys, ws, xs1, ys1, ws1
 		xs_old = xs
@@ -106,10 +134,9 @@ PRO hzpfex_tram2, infile, inwlfile, outfile, varfile = varfile, tellfile = tellf
 		ys = ys1
 		ws = ws1
 	endif	
+
 	
-	ys = -1d * ys ;flip y around (stuart does this in his code)
-	
-	norders = (size(inp2))[2]
+	norders = n_elements(model.orders)
 
 	;make the warray, although this is not *required* for extraction now	
 	warray=MAKE_ARRAY(2048, norders, /Double, Value=!Values.F_NAN)

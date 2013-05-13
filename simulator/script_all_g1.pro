@@ -145,11 +145,12 @@ mask_tellfile = '';'tellspec2_detected.fits'
 ;calfile = 'comb_120924_ll.fits'
 ;calfiles = file_search('/Volumes/RAID/HZPF/simulator/current_20120915/ffp_specs/*.fits',/fully_qualify_path)
 ;calfile = calfiles[3]
-echellogram_file = 'hpf demag=2-0x f8-5 2012dec15 v10-1-echelleogram.dat'
-echellogram_wl_file = 'hpf demag=2-0x f8-5 2012dec15 v10-1-wavelengths.dat'
+;echellogram_file = 'hpf demag=2-0x f8-5 2012dec15 v10-1-echelleogram.dat'
+;echellogram_wl_file = 'hpf demag=2-0x f8-5 2012dec15 v10-1-wavelengths.dat'
+optical_model = 'ramsey_513' ;choice of 'barnes_1212' or 'ramsey_513'
 
-straight_orders = 1
-upfactor = 2.
+straight_orders = 0
+upfactor = 1.
 
 
 
@@ -228,7 +229,7 @@ endif else begin
 	
 	;for j=0, n_elements(vs)-1 do hzpfsim_img,vs[j],outs[j],specfile='bt_34_extended.fits',tellfile=contam_tellfile,diagfile = diag_output,calfile=calfiles[3], projection_type = '7_fibers', model_version = 2, pixel_sampling=3.2, upsample_factor = 12, cal_upsample_factor=.1, velshift_style = 'newtonian'
 	
-	for j=0, n_elements(vs)-1 do hzpfsim_img,vs[j],outs[j],specfile=specfile,tellfile=contam_tellfile,diagfile = diag_output,calfile=calfile, projection_type = projection_type, pixel_sampling=pixel_sampling, upsample_factor = upsample_factor, cal_upsample_factor=cal_upsample_factor, velshift_style = velshift_style, orders_lambdahigh = out_lambdahigh, orders_lambdalow = out_lambdalow, orders_gaps = out_gap, fiber_fractions = fiber_fractions, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um, nfibers = nfibers, fiber_extra_sep_um = fiber_extra_sep_um, echellogram_file = echellogram_file, echellogram_wl_file = echellogram_wl_file, slitwidth_um = slitwidth_um, straight_orders = straight_orders, upfactor = upfactor
+	;for j=0, n_elements(vs)-1 do hzpfsim_img,vs[j],outs[j],specfile=specfile,tellfile=contam_tellfile,diagfile = diag_output,calfile=calfile, projection_type = projection_type, pixel_sampling=pixel_sampling, upsample_factor = upsample_factor, cal_upsample_factor=cal_upsample_factor, velshift_style = velshift_style, orders_lambdahigh = out_lambdahigh, orders_lambdalow = out_lambdalow, orders_gaps = out_gap, fiber_fractions = fiber_fractions, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um, nfibers = nfibers, fiber_extra_sep_um = fiber_extra_sep_um, optical_model = optical_model, slitwidth_um = slitwidth_um, straight_orders = straight_orders, upfactor = upfactor
 
 			
 	ind1 = string(0,format='(I1)')
@@ -236,9 +237,9 @@ endif else begin
 	on = string(exposure_time,format='(I07)')
 	
 	
-	expose,fldir,imdir,exptime=exposure_time,iparam=init_param,outnum=on,diagfile=diag_output
+	;expose,fldir,imdir,exptime=exposure_time,iparam=init_param,outnum=on,diagfile=diag_output
 			
-	extract,fldir,imdir,spdir,tellfile=correct_tellfile,diagfile=diag_output,projection_type = projection_type,orders_lambdahigh = out_lambdahigh, orders_lambdalow = out_lambdalow, orders_gaps = out_gap, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um, nfibers = nfibers, fiber_extra_sep_um = fiber_extra_sep_um, echellogram_file = echellogram_file, echellogram_wl_file = echellogram_wl_file, straight_orders = straight_orders
+	extract,fldir,imdir,spdir,tellfile=correct_tellfile,diagfile=diag_output,projection_type = projection_type,orders_lambdahigh = out_lambdahigh, orders_lambdalow = out_lambdalow, orders_gaps = out_gap, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um, nfibers = nfibers, fiber_extra_sep_um = fiber_extra_sep_um, optical_model = optical_model, straight_orders = straight_orders
 	
 	
 	test_mask_sb2,spdir,'vels'+ind+'.sav','maskrvs_'+ind+'_'+ind1+'.sav',maskfile=maskfile,weightsfile=weightsfile,tellfile=mask_tellfile,diagfile=diag_output

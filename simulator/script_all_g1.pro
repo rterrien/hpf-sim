@@ -229,7 +229,7 @@ endif else begin
 	
 	;for j=0, n_elements(vs)-1 do hzpfsim_img,vs[j],outs[j],specfile='bt_34_extended.fits',tellfile=contam_tellfile,diagfile = diag_output,calfile=calfiles[3], projection_type = '7_fibers', model_version = 2, pixel_sampling=3.2, upsample_factor = 12, cal_upsample_factor=.1, velshift_style = 'newtonian'
 	
-	;for j=0, n_elements(vs)-1 do hzpfsim_img,vs[j],outs[j],specfile=specfile,tellfile=contam_tellfile,diagfile = diag_output,calfile=calfile, projection_type = projection_type, pixel_sampling=pixel_sampling, upsample_factor = upsample_factor, cal_upsample_factor=cal_upsample_factor, velshift_style = velshift_style, orders_lambdahigh = out_lambdahigh, orders_lambdalow = out_lambdalow, orders_gaps = out_gap, fiber_fractions = fiber_fractions, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um, nfibers = nfibers, fiber_extra_sep_um = fiber_extra_sep_um, optical_model = optical_model, slitwidth_um = slitwidth_um, straight_orders = straight_orders, upfactor = upfactor
+	for j=0, n_elements(vs)-1 do hzpfsim_img,vs[j],outs[j],specfile=specfile,tellfile=contam_tellfile,diagfile = diag_output,calfile=calfile, projection_type = projection_type, pixel_sampling=pixel_sampling, upsample_factor = upsample_factor, cal_upsample_factor=cal_upsample_factor, velshift_style = velshift_style, orders_lambdahigh = out_lambdahigh, orders_lambdalow = out_lambdalow, orders_gaps = out_gap, fiber_fractions = fiber_fractions, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um, nfibers = nfibers, fiber_extra_sep_um = fiber_extra_sep_um, optical_model = optical_model, slitwidth_um = slitwidth_um, straight_orders = straight_orders, upfactor = upfactor
 
 			
 	ind1 = string(0,format='(I1)')
@@ -237,7 +237,7 @@ endif else begin
 	on = string(exposure_time,format='(I07)')
 	
 	
-	;expose,fldir,imdir,exptime=exposure_time,iparam=init_param,outnum=on,diagfile=diag_output
+	expose,fldir,imdir,exptime=exposure_time,iparam=init_param,outnum=on,diagfile=diag_output
 			
 	extract,fldir,imdir,spdir,tellfile=correct_tellfile,diagfile=diag_output,projection_type = projection_type,orders_lambdahigh = out_lambdahigh, orders_lambdalow = out_lambdalow, orders_gaps = out_gap, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um, nfibers = nfibers, fiber_extra_sep_um = fiber_extra_sep_um, optical_model = optical_model, straight_orders = straight_orders
 	

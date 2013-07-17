@@ -348,9 +348,10 @@ pro tram_projection3, w, f, res, pixel_sampling, specimg, calw=calw, calf=calf, 
 			y0_subarr = extra
 		endif
 		if y1_det gt 2047 then begin
-			extra = floor(max(y_grid_rect)+1024) - 2047
+			;extra = floor(max(y_grid_rect)+1024) - 2047
+			extra = floor(y1_det - 2047)
 			y1_det = 2047
-			y1_subarr = y_size_d - 1 - extra
+			y1_subarr = y_size_d/upfactor - 1 - extra/upfactor
 		endif
 		
 		;if nothing is on the detector skip this part

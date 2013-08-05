@@ -191,12 +191,12 @@ PRO hzpfex_tram3, infile, inwlfile, outfile, varfile = varfile, tellfile = tellf
 	for i=0, norders-1 do begin
 		;for each order, there are 2048 x pixels
 		;derive the wl for each pixel based on the x/wl map alone
-		ws_base[*,i] = interpol(ws[*,i],xs_pix[*,i],xs_base);,/spline)
+		ws_base[*,i] = interpol(ws[*,i],xs_pix[*,i],xs_base,/spline)
 		;same for left and right limits of each pixel
-		ws_base_left[*,i] = interpol(ws[*,i],xs_pix[*,i],xs_base_left);,/spline)
-		ws_base_right[*,i] = interpol(ws[*,i],xs_pix[*,i],xs_base_right);,/spline)
+		ws_base_left[*,i] = interpol(ws[*,i],xs_pix[*,i],xs_base_left,/spline)
+		ws_base_right[*,i] = interpol(ws[*,i],xs_pix[*,i],xs_base_right,/spline)
 		;find the y for each x based on the x/y map alone
-		ys_base[*,i] = interpol(ys_pix[*,i],xs_pix[*,i],xs_base);,/spline)
+		ys_base[*,i] = interpol(ys_pix[*,i],xs_pix[*,i],xs_base,/spline)
 		;replicate the x base array for convolving and plotting
 		xs_base_2d[*,i] = xs_base
 	endfor

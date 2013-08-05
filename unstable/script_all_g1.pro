@@ -160,7 +160,7 @@ mask_tellfile = '';'tellspec2_detected.fits'
 optical_model = 'ramsey_513' ;choice of 'barnes_1212' or 'ramsey_513'
 
 straight_orders = 1
-upfactor = 2. ; this is for the warping/convolution array
+upfactor = 1. ; this is for the warping/convolution array
 
 
 

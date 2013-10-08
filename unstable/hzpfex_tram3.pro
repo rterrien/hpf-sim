@@ -66,7 +66,7 @@ end
 
 
 
-PRO hzpfex_tram3, infile, inwlfile, outfile, varfile = varfile, tellfile = tellfile, crimg = crimg, diag_output = diag_output, orders_lambdalow = orders_lambdalow, orders_lambdahigh = orders_lambdahigh, orders_gaps = orders_gaps, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um,nfibers = nfibers, fiber_extra_sep_um = fiber_extra_sep_um, optical_model = optical_model, straight_orders = straight_orders
+PRO hzpfex_tram3, infile, inwlfile, outfile, varfile = varfile, tellfile = tellfile, crimg = crimg, diag_output = diag_output, orders_lambdalow = orders_lambdalow, orders_lambdahigh = orders_lambdahigh, orders_gaps = orders_gaps, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um,nfibers = nfibers, fiber_extra_sep_um = fiber_extra_sep_um, optical_model = optical_model, orders_shape = orders_shape
 
 	
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -125,8 +125,8 @@ PRO hzpfex_tram3, infile, inwlfile, outfile, varfile = varfile, tellfile = tellf
 	ys = model.ys
 	ws = model.ws
 	
-	if keyword_set(straight_orders) then begin
-		mod_echel, xs, ys, ws, xs1, ys1, ws1
+	if keyword_set(orders_shape) then begin
+		mod_echel, xs, ys, ws, xs1, ys1, ws1, ver=orders_shape
 		xs_old = xs
 		ys_old = ys
 		ws_old = ws
@@ -189,14 +189,18 @@ PRO hzpfex_tram3, infile, inwlfile, outfile, varfile = varfile, tellfile = tellf
 	;fill in the wavelengths that correspond to each bin and the edge of each bin
 	;note that wavelength depends only on x-position
 	for i=0, norders-1 do begin
-		;for each order, there are 2048 x pixels
-		;derive the wl for each pixel based on the x/wl map alone
-		ws_base[*,i] = interpol(ws[*,i],xs_pix[*,i],xs_base,/spline)
-		;same for left and right limits of each pixel
-		ws_base_left[*,i] = interpol(ws[*,i],xs_pix[*,i],xs_base_left,/spline)
-		ws_base_right[*,i] = interpol(ws[*,i],xs_pix[*,i],xs_base_right,/spline)
-		;find the y for each x based on the x/y map alone
-		ys_base[*,i] = interpol(ys_pix[*,i],xs_pix[*,i],xs_base,/spline)
+		w1a = mpfitfun('poly',xs_pix[*,i],ws[*,i],1d,[0d,0d,0d],yfit=w1b,/quiet)
+		w1c = poly(xs_base,w1a)
+		ws_base[*,i] = w1c
+		dw1 = (ws_base[1:*,i] - ws_base[*,i])/2d
+		dex = interpol(dw1,xs_base[0:-2],xs_base[-1])
+		dw2 = [dw1,dex]
+		ws_base_right[*,i] = ws_base[*,i] + dw2
+		ws_base_left[*,i] = ws_base[*,i] - dw2
+		
+		y1a = mpfitfun('poly',xs_pix[*,i],ys_pix[*,i],1d,[0d,0d,0d],yfit=y1b,/quiet)
+		y1c = poly(xs_base,y1a)
+		ys_base[*,i] = y1c
 		;replicate the x base array for convolving and plotting
 		xs_base_2d[*,i] = xs_base
 	endfor

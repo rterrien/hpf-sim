@@ -34,7 +34,7 @@
 ;; upfactor - factor to upsample the warping/convolving array
 
 
-pro tram_projection3_mod, w, f, res, pixel_sampling, specimg, calw=calw, calf=calf, diag_out = diag_out, fiber_fractions = fiber_fractions, warray = warray, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um, nfibers = nfibers, fiber_extra_sep_um = fiber_extra_sep_um, optical_model = optical_model, slitwidth_um = slitwidth_um, straight_orders = straight_orders, upfactor = upfactor
+pro tram_projection3_mod, w, f, res, pixel_sampling, specimg, calw=calw, calf=calf, diag_out = diag_out, fiber_fractions = fiber_fractions, warray = warray, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um, nfibers = nfibers, fiber_extra_sep_um = fiber_extra_sep_um, optical_model = optical_model, slitwidth_um = slitwidth_um, orders_shape = orders_shape, upfactor = upfactor, bypass_warp = bypass_warp
 
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;;PARAMETERS
@@ -43,6 +43,7 @@ pro tram_projection3_mod, w, f, res, pixel_sampling, specimg, calw=calw, calf=ca
 	buffer = 100 ; the extra pixels (/2) on each side for the big arrays which get filled in and convolved
 	if n_elements(upfactor) eq 0 then upfactor = 1
 	;upfactor = 2d ; the factor to upsample the array on which the warping/convolving is performed
+	
 	
 	fs_det = dblarr(2048,2048) ; detector array
 
@@ -102,8 +103,8 @@ pro tram_projection3_mod, w, f, res, pixel_sampling, specimg, calw=calw, calf=ca
 	ys = model.ys
 	ws = model.ws
 	
-	if keyword_set(straight_orders) then begin
-		mod_echel, xs, ys, ws, xs1, ys1, ws1
+	if keyword_set(orders_shape) then begin
+		mod_echel, xs, ys, ws, xs1, ys1, ws1, ver=orders_shape
 		xs_old = xs
 		ys_old = ys
 		ws_old = ws
@@ -158,12 +159,25 @@ pro tram_projection3_mod, w, f, res, pixel_sampling, specimg, calw=calw, calf=ca
 	for i=0, norders-1 do begin
 		;for each order, there are 2048 x pixels
 		;derive the wl for each pixel based on the x/wl map alone
-		ws_base[*,i] = interpol(ws[*,i],xs_pix[*,i],xs_base,/spline)
+		;ws_base[*,i] = interpol(ws[*,i],xs_pix[*,i],xs_base,/spline)
 		;same for left and right limits of each pixel
-		ws_base_left[*,i] = interpol(ws[*,i],xs_pix[*,i],xs_base_left,/spline)
-		ws_base_right[*,i] = interpol(ws[*,i],xs_pix[*,i],xs_base_right,/spline)
+		;ws_base_left[*,i] = interpol(ws[*,i],xs_pix[*,i],xs_base_left,/spline)
+		;ws_base_right[*,i] = interpol(ws[*,i],xs_pix[*,i],xs_base_right,/spline)
+		w1a = mpfitfun('poly',xs_pix[*,i],ws[*,i],1d,[0d,0d,0d],yfit=w1b,/quiet)
+		w1c = poly(xs_base,w1a)
+		ws_base[*,i] = w1c
+		dw1 = (ws_base[1:*,i] - ws_base[*,i])/2d
+		dex = interpol(dw1,xs_base[0:-2],xs_base[-1])
+		dw2 = [dw1,dex]
+		ws_base_right[*,i] = ws_base[*,i] + dw2
+		ws_base_left[*,i] = ws_base[*,i] - dw2
+		
+		y1a = mpfitfun('poly',xs_pix[*,i],ys_pix[*,i],1d,[0d,0d,0d],yfit=y1b,/quiet)
+		y1c = poly(xs_base,y1a)
+		ys_base[*,i] = y1c
+		
 		;find the y for each x based on the x/y map alone
-		ys_base[*,i] = interpol(ys_pix[*,i],xs_pix[*,i],xs_base,/spline)
+		;ys_base[*,i] = interpol(ys_pix[*,i],xs_pix[*,i],xs_base,/spline)
 		;replicate the x base array for convolving and plotting
 		xs_base_2d[*,i] = xs_base
 	endfor
@@ -378,11 +392,12 @@ pro tram_projection3_mod, w, f, res, pixel_sampling, specimg, calw=calw, calf=ca
 		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 		;;PERFORM THE WARPING / CONVOLUTION
 		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-		tmp = warp_tri(xs_rect_d,ys_rect_d,x_grid_rect_d,y_grid_rect_d,fs_rect,output_size = [x_size_d,y_size_d]);,/quintic)
+		
+		if ~keyword_set(bypass_warp) then tmp = warp_tri(xs_rect_d,ys_rect_d,x_grid_rect_d,y_grid_rect_d,fs_rect,output_size = [x_size_d,y_size_d]) else tmp = fs_rect
 		;remove below and uncomment above
 		;tmp = fs_rect
 		tmp_conv = convol(tmp,kernel,/center,/normalize,/edge_zero)
+		;stop
 		;tmp_conv = tmp
 		
 		;rebin back down if necessary

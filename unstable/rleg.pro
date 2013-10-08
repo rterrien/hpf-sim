@@ -6,7 +6,7 @@ function rleg, x, c
 	nc = n_elements(c)
 	res = dblarr(nx)
 	for i=0, nc-1 do begin
-		res += c[i] * legendre(x,i)
+		res += c[i] * legendre(x,i,/double)
 	endfor
 	return,res
 end

@@ -1,4 +1,4 @@
-;; hzpfex_tram1.pro (and nonan.pro)
+;; hzpfex_tram3.pro (and nonan.pro)
 ;; HPF DETECTOR SIMULATOR
 ;; This is the extraction code
 ;; It takes data from the image files, adds up with pre-defined orders
@@ -66,7 +66,7 @@ end
 
 
 
-PRO hzpfex_tram2, infile, inwlfile, outfile, varfile = varfile, tellfile = tellfile, crimg = crimg, diag_output = diag_output, orders_lambdalow = orders_lambdalow, orders_lambdahigh = orders_lambdahigh, orders_gaps = orders_gaps, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um,nfibers = nfibers, fiber_extra_sep_um = fiber_extra_sep_um, optical_model = optical_model, orders_shape = orders_shape
+PRO hzpfex_tram4, infile, inwlfile, outfile, varfile = varfile, tellfile = tellfile, crimg = crimg, diag_output = diag_output, orders_lambdalow = orders_lambdalow, orders_lambdahigh = orders_lambdahigh, orders_gaps = orders_gaps, fiber_scale = fiber_scale, fiber_core_um = fiber_core_um, fiber_cladding_um = fiber_cladding_um, fiber_buffer_um = fiber_buffer_um,nfibers = nfibers, fiber_extra_sep_um = fiber_extra_sep_um, optical_model = optical_model, orders_shape = orders_shape
 
 	
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -158,8 +158,6 @@ PRO hzpfex_tram2, infile, inwlfile, outfile, varfile = varfile, tellfile = tellf
 
 	extracted_fl = dblarr(2048,norders)
 	extracted_wl = dblarr(2048,norders)
-
-	
 	
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;;PROCESS ECHELLOGRAM INFO (copied from tram_projection3)
@@ -175,6 +173,7 @@ PRO hzpfex_tram2, infile, inwlfile, outfile, varfile = varfile, tellfile = tellf
 	
 	xs_base = ((dindgen((2048+buffer)*upfactor) - (1024.+buffer/2)*upfactor)/upfactor)
 	ws_base = dblarr((2048 + buffer)*upfactor,norders)
+	xs_base_nobuf = xs_base[buffer/2 : 2047+buffer/2]
 	
 	;find left and right limits of each pixel for binning the spectrum
 	xs_base_left = xs_base - 0.5
@@ -188,16 +187,6 @@ PRO hzpfex_tram2, infile, inwlfile, outfile, varfile = varfile, tellfile = tellf
 	;fill in the wavelengths that correspond to each bin and the edge of each bin
 	;note that wavelength depends only on x-position
 	for i=0, norders-1 do begin
-		;for each order, there are 2048 x pixels
-		;derive the wl for each pixel based on the x/wl map alone
-;;		ws_base[*,i] = interpol(ws[*,i],xs_pix[*,i],xs_base,/spline)
-;;		;same for left and right limits of each pixel
-;;		ws_base_left[*,i] = interpol(ws[*,i],xs_pix[*,i],xs_base_left,/spline)
-;;		ws_base_right[*,i] = interpol(ws[*,i],xs_pix[*,i],xs_base_right,/spline)
-;;		;find the y for each x based on the x/y map alone
-;;		ys_base[*,i] = interpol(ys_pix[*,i],xs_pix[*,i],xs_base,/spline)
-		;replicate the x base array for convolving and plotting
-		
 		w1a = mpfitfun('poly',xs_pix[*,i],ws[*,i],1d,[0d,0d,0d],yfit=w1b,/quiet)
 		w1c = poly(xs_base,w1a)
 		ws_base[*,i] = w1c
@@ -207,12 +196,19 @@ PRO hzpfex_tram2, infile, inwlfile, outfile, varfile = varfile, tellfile = tellf
 		ws_base_right[*,i] = ws_base[*,i] + dw2
 		ws_base_left[*,i] = ws_base[*,i] - dw2
 		
+		;yoff = ys_pix[0,i]
+		;yt1 = ys_pix[*,i] - yoff
+		;yt2 = -1d * yt1
+		;ys_pix[*,i] = yt2 + yoff
+		
 		y1a = mpfitfun('poly',xs_pix[*,i],ys_pix[*,i],1d,[0d,0d,0d],yfit=y1b,/quiet)
 		y1c = poly(xs_base,y1a)
 		ys_base[*,i] = y1c
-
+		;replicate the x base array for convolving and plotting
 		xs_base_2d[*,i] = xs_base
 	endfor
+	
+	ys_base_nobuf = ys_base[buffer/2 : 2047 + buffer/2,*]
 
 
 
@@ -234,31 +230,207 @@ PRO hzpfex_tram2, infile, inwlfile, outfile, varfile = varfile, tellfile = tellf
 	y_size_kernel = (floor((nfibers + 1d) * kernel_sep_pix))*upfactor; + kernel_size_pix) + kernel_sep_pix)
 	x_size_kernel = (floor(3. * kernel_size_pix))*upfactor
 	extract_width = round(kernel_size_pix/2d + 1)
-	
+
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;;EXTRACT THE SPECTRA
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+	;keep track of which orders are entirely contained on the chip and extract only these
 	good_orders = intarr(norders)
 
 	for i=0, norders-1 do begin
+	
+		print,i
+		boxsi = floor(max(ys_base[*,i] + y_size_kernel/2d) - min(ys_base[*,i] - y_size_kernel/2d))
+		
+		
+		xs_rect = dblarr(2048 + buffer, boxsi)
+		ys_rect = dblarr(2048 + buffer, boxsi)
+		
+		
+		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+		;;RECREATE THE ARRAYS USED FOR THE FLUX ARRAY WARPING (copied from tram_projection3)
+		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+		;create the rectified arrays
+;;		;these map the rectified fs to the warped positions xs_rect, ys_rect
+;;		xs_rect = dblarr((2048+buffer)*upfactor,200*upfactor)
+;;		ys_rect = dblarr((2048+buffer)*upfactor,200*upfactor)
+;;		fs_rect = dblarr((2048+buffer)*upfactor,200*upfactor)
+;;		xs_rect = dblarr((2048)*upfactor,200*upfactor)
+;;		ys_rect = dblarr((2048)*upfactor,200*upfactor)
+;;		fs_rect = dblarr((2048)*upfactor,200*upfactor)
+		
+		for j=0, boxsi-1 do begin
+			xs_rect[*,j] = xs_base
+			ypos = double(j)/double(upfactor) - y_size_kernel/2
+			ys_rect[*,j] = ys_base[*,i] + ypos
+		endfor
+
+
+		;create indices for the rect arrays
+	
+		;nx_rect = (size(xs_rect))[1] ;- buffer
+		;ny_rect = (size(xs_rect))[2]
+		;x_grid_rect_d = rebin(lindgen(nx_rect),nx_rect,ny_rect)
+		;y_grid_rect_d = rebin(1#lindgen(ny_rect),nx_rect,ny_rect)
+	
+		;find offset between indices (0,2048) and coords (-1024,1023)
+		xs_d_offset = min(xs_rect) ;+buffer/2;- buffer/2
+		ys_d_offset = min(ys_rect) ;+buffer/2
+	
+		;reposition the rect arrays to (0,2047)
+		xs_rect_d = (xs_rect - xs_d_offset)
+		ys_rect_d = (ys_rect - ys_d_offset)
+	
+		;reposition the grid to (-1024,1023)
+;;		x_grid_rect = x_grid_rect_d + xs_d_offset ;- buffer/2
+;;		y_grid_rect = y_grid_rect_d + ys_d_offset
+	
+		;how big must the output be
+;;		x_size_d = max(floor(xs_rect_d)) - min(floor(xs_rect_d))
+;;		y_size_d = max(floor(ys_rect_d)) - min(floor(ys_rect_d))
+;;		if x_size_d mod 2 eq 1 then x_size_d += 1
+;;		if y_size_d mod 2 eq 1 then y_size_d += 1
+		
+		;x_size_d = 2048d
+		;y_size_d = 200d
+	
+		y_min = min(floor(ys_rect))
+		y_max = max(floor(ys_rect))
+
+		;find the chunk of the detector that this corresponds to
+		;y locations on detector
+		y0_det = min(ys_rect) + 1024 ;+ 12; + buffer/2
+		y1_det = y0_det + boxsi - 1
+		;y0_det = ys_rect[0,boxsi/2
+;;		;y locations in the sub-array
+;;		y0_subarr = 0
+;;		y1_subarr = y_size_d/upfactor - 1
+;;		;x locations in sub-array and detector always the same
+		x0 = buffer/2
+		x1 = x0 + 2047
+		xd0 = 0
+		xd1 = 2047
+		
+		if y0_det lt 0 or y0_det gt 2047 then begin
+			good_orders[i] = 0
+			continue
+		endif
+		if y1_det lt 0 or y1_det gt 2047 then begin
+			good_orders[i] = 0
+			continue
+		endif
+;;	
+;;		;if there is any that spills off the end of the detector, adjust the two coordiantes
+;;		extra = 0d
+		;y1 = boxsi/2d - 0.4 * y_size_kernel 
+		;y2 = boxsi/2d + 0.4 * y_size_kernel
+
+
+;;		if y0_det lt 0 then begin
+;;			extra = abs(y0_det)
+;;			y0_det = 0
+;;			y0_subarr = extra
+;;			y1 = 100d - 0.3 * y_size_kernel - extra
+;;			y2 = 100d + 0.3 * y_size_kernel - extra
+;;			y1_extra = extra
+;;		endif
+;;		if y1_det gt 2047 then begin
+;;			;extra = floor(max(y_grid_rect)+1024) - 2047
+;;			extra = floor(y1_det - 2047)
+;;			y1_det = 2047
+;;			y2_extra = extra
+;;			;y1_subarr = y_size_d/upfactor - 1 - extra/upfactor
+;;		endif
+;;
+;;		if y1 lt 0 or y2 lt 0 then begin
+;;			good_orders[i] = 0
+;;			continue
+;;		endif
+;;		if y1 gt 2047 or y2 gt 2047 then begin
+;;			good_orders[i] = 0
+;;			continue
+;;		endif
+;;
+;;		y1_check = min(ys_base[*,i]) - y_size_kernel/2d - 1d + 1023d
+;;		y2_check = max(ys_base[*,i]) + y_size_kernel/2d + 1d + 1023d
+;;		if y1_check lt 0 or y2_check gt 2047 then begin
+;;			good_orders[i] = 0
+;;			continue
+;;		endif
+;;		;if nothing is on the detector skip this part
+;;		if y1_det lt 0 or y0_det gt 2047 then begin
+;;			good_orders[i] = 0
+;;			continue
+;;		endif
+		good_orders[i] = 1
+	
+		;fill in
+;;		t1 = fs_det[xd0:xd1 , y0_det:y1_det]
+;;		t2 = t1 + tmp_conv_rebin[x0:x1, y0_subarr:y1_subarr]
+;;		fs_det[xd0:xd1 , y0_det:y1_det] = t2
+		
+		;cut down the mapping arrays to match the subimage
+		;xs_rect_d = xs_rect_d[*,y1_extra:-1 * y2_extra - 1]
+		;ys_rect_d = ys_rect_d[*,y1_extra:-1 * y2_extra - 1]
+		
+		tmp = dblarr(2148,(floor(y1_det) - floor(y0_det))+1)
+		tmp[buffer/2:2047+buffer/2,*] = image[xd0:xd1, y0_det:y1_det]
+		;tmp = image[xd0:xd1, y0_det:y1_det]
+;;		x_grid_rect_d_nobuf = x_grid_rect_d[buffer/2:2047+buffer/2, y0_subarr:y1_subarr]
+;;		y_grid_rect_d_nobuf = y_grid_rect_d[buffer/2:2047+buffer/2, y0_subarr:y1_subarr]
+;;		xs_rect_d_nobuf = xs_rect_d[buffer/2:2047+buffer/2, y0_subarr:y1_subarr]
+;;		ys_rect_d_nobuf = ys_rect_d[buffer/2:2047+buffer/2, y0_subarr:y1_subarr]
+		;xs_rect_d -= 50.
+		
+		nn = y1_det - y0_det + 1
+		
+		
+		
+		gx = 1d
+		gy = 1d
+		tmp_warp = tri_surf(tmp,xs_rect_d,reverse(ys_rect_d,2),gs=[gx,gy],missing=0d)
+		tmp_warp = reverse(tmp_warp,2)
+		
+		mid = (size(tmp_warp,/dimen))[1]/2 - 1
+		y1 = mid - .4 * y_size_kernel
+		y2 = mid + .4 * y_size_kernel
+		
+		;tmp_warp = warp_tri(x_grid_rect_d_nobuf,y_grid_rect_d_nobuf,xs_rect_d_nobuf,ys_rect_d_nobuf,tmp)
+		
+		tmp_warp_sub = tmp_warp[buffer/2:2047+buffer/2,*]
+	
+		;stop
+
 		;y1s and y2s are lower and upper limits of extraction regions
-		y1s = floor(ys_base[*,i] - 0.3 * y_size_kernel + 1024)
-		y2s = y1s + .6 * y_size_kernel
+		;y1s = floor(ys_base[*,i] - 0.3 * y_size_kernel + 1024)
+		;y2s = y1s + .6 * y_size_kernel
+		
+		;stop
 		
 		;if entire region is on the array then it is good
-		if max(y2s) le 2047 and min(y1s) ge 0 then good_orders[i] = 1
+		;if max(y2s) le 2047 and min(y1s) ge 0 then good_orders[i] = 1
 		
 		;iterate over pixels in the extracted array
 		;extracted_wl is created with buffer limits so only fill in the non-buffer region
+		;;;;;; temporary
+		restore,inwlfile
+		extracted_wl = warray ;* 1d3
+		;stop
+		;;;;;;;;;;;;;;;;
+		
 		for j=buffer/2, 2047+buffer/2 do begin ; loop over x pixels (recall that the overall array is "big")
 			;x i want is j
 			;y limits are y1/2s
-			extracted_wl[j-buffer/2,i] = ws_base[j,i]
+			;extracted_wl[j-buffer/2,i] = ws_base[j,i]  ;change is this back ryan 7-22-13
 			
 			;if there's nothing then continue, otherwise pull out what i can
-			if y2s[j] lt 0 or y1s[j] gt 2047 then continue
-			y1t = 0 > y1s[j]
-			y2t = 2047 < y2s[j]
+			;if y2s[j] lt 0 or y1s[j] gt 2047 then continue
+			;y1t = 0 > y1s[j]
+			;y2t = 2047 < y2s[j]
 			
 			;pull the entire column
-			column = image[j-buffer/2,y1t:y2t]
+			column = tmp_warp_sub[j-buffer/2,y1:y2]
 			
 			;if there's  only a few then just take the total (this doesn't matter since these are not "good" orders)
 			if n_elements(column) lt 3 then begin
@@ -276,10 +448,12 @@ PRO hzpfex_tram2, infile, inwlfile, outfile, varfile = varfile, tellfile = tellf
 					k1 = 0 > (maxlocs[k] - extract_width)
 					k2 = (maxlocs[k] + extract_width) < (n_elements(column) - 1)
 					temptot += total(column[k1:k2])
+					;stop
 				endfor
 			endelse
 			;store
 			extracted_fl[j-buffer/2,i] = temptot
+			;stop
 		endfor
 		
 		;convert to flux/wavelength
@@ -289,7 +463,6 @@ PRO hzpfex_tram2, infile, inwlfile, outfile, varfile = varfile, tellfile = tellf
 		xsi = [xsi[0],xsi,xsi[-1]]
 
 		extracted_fl[*,i] /= xsi
-		
 		;stop
 ;;		display,image
 ;;		oplot,y1s,co=cgcolor('green')
@@ -298,11 +471,6 @@ PRO hzpfex_tram2, infile, inwlfile, outfile, varfile = varfile, tellfile = tellf
 ;;		stop
 	endfor
 	
-	;;;;;; temporary
-	restore,inwlfile
-	extracted_wl = warray
-	;stop
-	;;;;;;;;;;;;;;;;
 	
 	
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -334,9 +502,6 @@ PRO hzpfex_tram2, infile, inwlfile, outfile, varfile = varfile, tellfile = tellf
 		fit = svdfit(wlfitin,ms,5,/legendre,/double)
 		fl_nvals = double(rleg(wlfit,fit))
 		subflux = subflux / fl_nvals
-		
-		subwave = subwave[1:-2]
-		subflux = subflux[1:-2]
 		
 		;if we're on the first order create the final arrays, otherwise append to them and fill in gaps
 		if i eq 0 then begin
@@ -373,9 +538,10 @@ PRO hzpfex_tram2, infile, inwlfile, outfile, varfile = varfile, tellfile = tellf
 				endelse
 			endelse
 		endelse
-		;stop
+
 	endfor	
 	
+	;stop
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;;STORE RESULT
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

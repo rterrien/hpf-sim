@@ -1,0 +1,56 @@
+HPF Simulator Outline
+
+STRUCTURE OF ROUTINES
+
+hpf_script_all
+
+	where_am_i()
+
+	hpf_initialize_det_params()
+		
+		hpf_qe_function_lookup()
+	
+	hpf_initialize_spec_params()
+	
+	hpf_load_specs
+	
+	hpf_initialize_optical_params()
+	
+	hpf_process_optical_model()
+	
+		hpf_mod_echel
+	
+	[PROJECT]
+	hpf_apply_velshift
+	
+	hpf_tram_project
+		
+		hrs_kernel_1d()
+		
+		hrs_kernel_2d()
+	
+	[EXPOSE]
+	hpf_expose_cds
+		
+		hpf_reset_detector
+		
+		hpf_set_fluence_detector
+		
+		hpf_read_detector
+		
+		hpf_timestep_detector
+	
+	[EXTRACT]
+	hpf_extract
+	
+		hpf_locmax()
+		
+		hpf_boxcarmax()
+		
+	
+	[ANALYZE]
+	hpf_initialize_mask()
+	
+	hpf_mask_rv()
+	
+	

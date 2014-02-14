@@ -124,7 +124,7 @@ pro hpf_extract, spec_params, optical_params, proj_params, det_params, infile, o
 		endcase
 		; with new linear model, there is some changing offset that creeps in, 
 		; the following clumsily corrects for it RCT 2-13-14
-		if optical_params.model_file eq 'model_020714_shift.sav' then begin
+		if optical_params.model_file eq 'support/model_020714_shift.sav' then begin
 			;boxsi = 400.
 			if i le 10 then offset = 60. - i * 2.
 			if i gt 10 and i lt 15 then offset = 60 - i*1.75

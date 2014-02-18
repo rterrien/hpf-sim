@@ -216,7 +216,33 @@ pro hpf_extract, spec_params, optical_params, proj_params, det_params, infile, o
 		low_locs = where(horiz_maxs lt max(horiz_collapse)*1d-4,nlow_locs)
 		if nlow_locs ne 0 then horiz_maxs[low_locs] = 0d
 		maxlocs = where(horiz_maxs ne 0,nmaxs)
-		if nmaxs ne optical_params.nfibers then message,'found different nmaxs and nfibers'
+		
+		;This deals with a few special cases:
+		;If there are too many spurious maxima, take the highest:
+		if nmaxs gt optical_params.nfibers then begin
+			rollmax = horiz_maxs
+			maxlocs = []
+			for j=0, optical_params.nfibers-1 do begin
+				ll = (where(rollmax eq max(rollmax)))[0]
+				rollmax[ll] = 0
+				maxlocs = [maxlocs,ll]
+			endfor
+			maxlocs = maxlocs[sort(maxlocs)]
+			ds = maxlocs[1:*] - maxlocs
+			if total(ds lt extract_width) ne 0 then message,'finding maxima too close together'
+			nmaxs = optical_params.nfibers
+		endif
+		;If the middle fiber is off in a 3 fiber config, take the average position of the end fibers
+		if nmaxs eq 2 and optical_params.nfibers eq 3 then begin
+			if (maxlocs[1] - maxlocs[0]) gt 2*extract_width then begin
+				mm = floor(mean(maxlocs[0]))
+				maxlocs = [maxlocs[0],mm,maxlocs[1]]
+			endif else begin
+				message,'still bad'
+			endelse
+		endif else begin
+			if nmaxs ne optical_params.nfibers then message,'found different nmaxs and nfibers'
+		endelse
 		;if i mod 5 eq 0 and i ge 20 then stop
 		;display,alog(tmp_warp+1.)
 		;hline,mid,color=cgcolor('red')

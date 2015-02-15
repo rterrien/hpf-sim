@@ -34,7 +34,7 @@
 ;-
 
 
-pro hpf_script_all, index, datdir = datdir, outdir = outdir, nvels = nvels, skip_fluence = skip_fluence, skip_expose = skip_expose, skip_extract = skip_extract, skip_mask = skip_mask
+pro hpf_script_all, index, datdir = datdir, outdir = outdir, nvels = nvels, skip_fluence = skip_fluence, skip_expose = skip_expose, skip_extract = skip_extract, skip_mask = skip_mask, invel = invel, start = start, finish = finish
 
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;; BASIC OVERALL PATHS and PARAMETERS
@@ -46,13 +46,22 @@ pro hpf_script_all, index, datdir = datdir, outdir = outdir, nvels = nvels, skip
 
 	remove_outputs = 0
 
-	exposure_time = 5d
+	exposure_time = 300d
 
 	if ~keyword_set(nvels) then nvels = 2
 	vels=(randomu(seed,nvels,/uniform)-0.5) * 60d * 1000d
-
+	if n_elements(invel) ne 0 then begin
+		vels = invel
+		nvels = n_elements(invel)
+	endif
 
 	num = indgen(nvels)
+	
+	if n_elements(start) ne 0 then begin
+		nvels = finish - start + 1
+		num = indgen(nvels) + start
+		vels=(randomu(seed,nvels,/uniform)-0.5) * 60d * 1000d
+	endif
 
 	if ~(keyword_set(datdir) and keyword_set(outdir)) then begin
 		computer = where_am_i()
@@ -101,14 +110,14 @@ pro hpf_script_all, index, datdir = datdir, outdir = outdir, nvels = nvels, skip
 		dark_current:0.00d, $ ;0.05
 		qe_flag:0b, $
 		qe_loc:'support/h2rg_2.5qe_24micron', $
-		ad_flag:0b, $
+		ad_flag:1b, $
 		persist_flag:0b, $
 		ipc_flag:0b, $
-		ipc_mean:0.02, $
+		ipc_mean:0.01, $
 		ipc_sd:0.002, $
-		read_noise:0L, $ ;18
+		read_noise:18L, $ ;18
 		reset_noise:0L, $
-		photon_noise_Flag:0b, $
+		photon_noise_Flag:1b, $
 		op_mask_flag:0b, $
 		well_depth:1d30, $
 		flat_flag:0b, $
@@ -130,7 +139,25 @@ pro hpf_script_all, index, datdir = datdir, outdir = outdir, nvels = nvels, skip
 	;; SPECTRA PARAMETERS
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	
-	spec_params = hpf_initialize_spec_params()
+	 init_optical_params = { wl:ptrarr(3,/allocate_heap), $
+    fl:ptrarr(3,/allocate_heap), $
+    shift_wl:ptrarr(3,/allocate_heap), $
+    spec_file:['support/bt_34_extended.fits','~/work/spectra/ffp_35_300_10nwpermode_5000.0_001.00.fits',''], $ ;'~/work/spectra/ffp_30_80.fits'   support/bt_34_extended.fits
+    type:['STAR','CAL','FLAT'],$
+    rv:0d, $
+    rv_type:'RELATIVISTIC', $
+    tellcontam_flag:[0,0,1], $
+    tellcontam_file:['support/tellspec.fits','','support/tell_vzyj_unsmoothed_nocont.fits'], $
+    upsample_factor:[12,1,1], $ ;12,1,1
+    filter:[1d,1d-9,1d], $ ;1d-2 for ffp_30_80
+    jmag:[9d,!values.f_nan,!values.f_nan], $
+    flat:[0,0,1], $
+    normalize_output:[1,0,1], $ ; 1,0,1
+    output_per_wavelength:[1,1,0], $ ; 1,1,0
+    lfc_lims:[[.813d,.935d],[.964d,1.105d],[1.159d,1.284d]],$
+    lfc_lims_flag:1 }
+	
+	spec_params = hpf_initialize_spec_params(init_params = init_optical_params)
 	print,'MEMORY AFTER SPEC INIT'
 	print,memory()/1d6
 	hpf_load_specs, spec_params, det_params
@@ -140,8 +167,31 @@ pro hpf_script_all, index, datdir = datdir, outdir = outdir, nvels = nvels, skip
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;; OPTICAL PARAMETERS
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	
+	 init_optical_params = {fiber_core_um:300, $ ;300 100/300/300
+    fiber_cladding_um:489.51d, $ ;400
+    fiber_buffer_um:489.51d, $ ;500
+    fiber_extra_sep_um:0d , $;200d, $
+    fiber_scale:0.0286d, $ ;3 pix/ 100um
+    nfibers:3, $
+    slitwidth_um:100d, $;100d, $90
+    projection_upsample:2d, $ ;4x4
+    convol_upsample: 2d, $
+    orders_shape: 0, $
+    orders_inty:0,$
+    wlimg_file:'', $
+    model_file:'support/model_v1_nov30_2014.sav', $ ;support/model_020714_shift.sav or model_072014_shift.sav or support/model_072014_shift.sav
+    kernel_type:'step3_tilt', $ ;or gaussian or hrs or step3 or circlehat or step3_tilt
+    warp_style:'polyclip', $ ;polyclip or tri_surf
+    extract_width_mod:2, $
+    linear_warp:0, $
+    bypass_warp:0, $
+    extra_orders_blue:2, $
+    extra_orders_red:2, $
+    reimager_kernel:0 ,$
+    slit_angle:0d} ;degrees
 
-	optical_params = hpf_initialize_optical_params()
+	optical_params = hpf_initialize_optical_params(init_params = init_optical_params)
 	print,'MEMORY AFTER LOAD SPEC'
 	print,memory()/1d6
 	optical_params.wlimg_file = fldir + 'wlimg.fits'
@@ -153,6 +203,28 @@ pro hpf_script_all, index, datdir = datdir, outdir = outdir, nvels = nvels, skip
 	proj_params = hpf_process_optical_model(optical_params)
 	print,'MEMORY AFTER PROC OPT'
 	print,memory()/1d6
+	
+	
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; MASK PARAMETERS
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	
+	init_mask_params = {mask_file:'support/btmask2.sav',$
+    weights_file:'support/btmask_weights2.sav',$
+    width_ms:3.d3,$
+    excl_nan:1,$
+    ccf1_velrange:80000d,$
+    ccf1_nvel:501d,$
+    ccf2_velrange:20000d,$ ;20000
+    ccf2_nvel:501d,$
+    ccf1_nterms:5,$
+    ccf2_nterms:4,$
+    excl_tell:0,$
+    telluric_spec:'support/tellspec3_detected.fits',$
+    tell_excl_level:0.98d }
+	
+    mask_params = hpf_initialize_mask(spec_params, init_params = init_mask_params)
+
 	
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;;;   SINGLE ROUND
@@ -203,9 +275,7 @@ pro hpf_script_all, index, datdir = datdir, outdir = outdir, nvels = nvels, skip
 	; Do the mask analysis
 	
 	if ~keyword_set(skip_mask) then begin
-	
-		mask_params = hpf_initialize_mask(spec_params)
-	
+		
 		spec_files = file_search(spdir+'*_spec.fits',/fully_qualify_path,count=nfiles)
 	
 		measured_rvs = dblarr(nfiles)

@@ -16,13 +16,13 @@ pro flux_checker
 	;;READ SPECTRUM
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	
-	;spec = readfits('bt_34_extended.fits',head)
-	;spec = transpose(spec)
-	;cal = 0
-	
-	spec = mrdfits('~/work/spectra/ffp_30_300.fits')
+	spec = readfits('~/work/simulator/test/support/bt_34_extended.fits',head)
 	spec = transpose(spec)
-	cal = 1
+	cal = 0
+	
+	;spec = mrdfits('~/work/spectra/ffp_30_300.fits')
+	;spec = transpose(spec)
+	;cal = 1
 
 	wmod   = reform(spec[*,0])	; assume wavelength is in microns
 	fmod   = reform(spec[*,1])	; assume flux is in Watts/m2/micron
@@ -109,7 +109,7 @@ pro flux_checker
 
 
 	;;;MODEL LOAD
-	optical_model_file = 'support/model_ramsey_513.sav'
+	optical_model_file = 'support/model_020714_shift.sav'
 	restore,optical_model_file
 	xs = model.xs
 	ys = model.ys

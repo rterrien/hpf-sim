@@ -37,18 +37,20 @@ function hpf_initialize_spec_params, init_params = init_params
 	out = { wl:ptrarr(3,/allocate_heap), $
 		fl:ptrarr(3,/allocate_heap), $
 		shift_wl:ptrarr(3,/allocate_heap), $
-		spec_file:['support/Teff3500logg5.0.fits','~/work/spectra/ffp_30_100.fits',''], $
+		spec_file:['support/bt_34_extended.fits','~/work/spectra/ffp_35_300_10nwpermode_5000.0_001.00.fits',''], $ ;'~/work/spectra/ffp_30_80.fits'
 		type:['STAR','CAL','FLAT'],$
 		rv:0d, $
 		rv_type:'RELATIVISTIC', $
 		tellcontam_flag:[0,0,0], $
 		tellcontam_file:['support/tellspec2_detected.fits','',''], $
-		upsample_factor:[12d,1,1], $
-		filter:[1d,1d-2,1], $
+		upsample_factor:[12,1,1], $
+		filter:[1d,1d-9,1], $ ;1d-2 for ffp_30_80
 		jmag:[9d,!values.f_nan,!values.f_nan], $
 		flat:[0,0,1], $
 		normalize_output:[0,0,0], $
-		output_per_wavelength:[1,1,0] }
+		output_per_wavelength:[1,1,0], $ 
+		lfc_lims:make_array(2,3,/double,value=!values.f_nan), $
+		lfc_lims_flag:0 }
 	
 	out_names = tag_names(out)
 	;Set init_params if they are input

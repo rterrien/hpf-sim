@@ -58,7 +58,7 @@ function hpf_mask_rv, spec_params, mask_params, spec_struct
 	diag_output = ''
 
 	c=299792458.d ;m/s
-	nel = n_elements(spec_struct.wl)
+	;nel = n_elements(spec_struct.wl)
 	
 	mask_lp = mask_params.lp
 	mask_rp = mask_params.rp
@@ -67,8 +67,24 @@ function hpf_mask_rv, spec_params, mask_params, spec_struct
 	star_ind = where(spec_params.type eq 'STAR',nstar)
 	if nstar ne 1 then message,'NO STAR or MORE THAN 1 STAR'
 	
-	wl = double(reform(spec_struct.wl))
-	fl = double(reform(spec_struct.fl[star_ind[0],*]))
+	wl1 = double(reform(spec_struct.wl))
+	fl1 = double(reform(spec_struct.fl[star_ind[0],*]))
+	
+	wl = wl1
+	fl = fl1 
+	nel = n_elements(wl1)
+	
+	
+
+	
+;;	nel2 = 10.*nel1 ;multiply this for upsampling
+;;	neww = dindgen(nel2)/double(nel2) * (maxl - minl) + minl
+;;	;newf = interpol(fl1,wl1,neww)
+;;	newf = hermite(wl1,fl1,neww)
+;;	wl = neww
+;;	fl = newf
+;;	nel = nel2
+
 	
 	out.n_maskpts_orig = n_elements(mask_lp)
 	
@@ -116,8 +132,8 @@ function hpf_mask_rv, spec_params, mask_params, spec_struct
 	;;REMOVE MASK POINTS NEAR EDGES
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;do not use any points within 60 pixels of an edge either
-	llim = wl[60]
-	ulim = wl[-60]
+	llim = wl[150]
+	ulim = wl[-150]
 	mcs = (mask_lp + mask_rp)/2.
 	nori = n_elements(mcs)
 	nedg = where(mcs gt llim and mcs lt ulim,nne)
@@ -137,10 +153,11 @@ function hpf_mask_rv, spec_params, mask_params, spec_struct
 	;IMPLEMENT THIS LATER RCT 12-5-13 
 	;NEED A PROCESSED TELLURIC SPECTRUM???
 	if keyword_set(mask_params.excl_tell) then begin
-		tellspec = mrdfits('TELLFILE HERE')
+		tellspec = mrdfits(mask_params.telluric_spec)
 		tellwl = reform(tellspec[0,*])
 		tellfl = reform(tellspec[1,*])
-		bad = where(tellfl lt .98, nbad)
+		
+		bad = where(tellfl lt mask_params.tell_excl_level, nbad) ;originally .98
 		tellba = dblarr(n_elements(tellfl))
 		tellba[*] = 0.d
 		tellba[bad] = 1.d
@@ -184,6 +201,18 @@ function hpf_mask_rv, spec_params, mask_params, spec_struct
 	xsi = double([xsi[0],xsi,xsi[-1]]) ;bin sizes
 	rp = double(wl + xsi/2.) ;right points
 	lp = double(wl - xsi/2.) ;left points
+	
+;;	;try something more detailed
+;;	xii = dindgen(n_elements(wl))
+;;	xii_l = xii - 0.5d
+;;	xii_r = xii + 0.5d
+;;	lp2 = interpol(wl,xii,xii_l,/quadratic)
+;;	rp2 = interpol(wl,xii,xii_r,/quadratic)
+;;	xsi2 = rp2 - lp2
+;;	xsi = xsi2
+;;	rp = rp2
+;;	lp = lp2
+;;	;didnt' help
 
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;;ROUND 1 OF CCF FITTING
@@ -231,6 +260,7 @@ function hpf_mask_rv, spec_params, mask_params, spec_struct
 			sumarr[l_locs[j]+1:r_locs[j]-1] += mask_we[j]
 		endfor
 		sum = total( sumarr * xsi * fl ,/nan,/double)
+		
 		result[i] = sum
 	endfor
 
@@ -300,6 +330,7 @@ function hpf_mask_rv, spec_params, mask_params, spec_struct
 	out.ccf2_res_err = b_ccf_errors
 	out.rv_out = b_ccf[1]
 	out.rv_err = b_ccf_errors[1]
+	
 	
 	;diag_output = diag_output + string(13B) + 'Center 2 (RV Result): ' + string(center2,format='(D+10.3)') + string(13B) + 'Peak Width: ' + string(b_ccf_errors[1],format='(D+10.3)')
 

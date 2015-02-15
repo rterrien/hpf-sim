@@ -41,15 +41,17 @@ function hpf_initialize_mask, spec_params, init_params = init_params
 
 	out = {mask_file:'support/btmask2.sav',$
 		weights_file:'support/btmask_weights2.sav',$
-		width_ms:3d3,$
+		width_ms:3.d3,$
 		excl_nan:1,$
 		excl_tell:0,$
 		ccf1_velrange:80000d,$
 		ccf1_nvel:501d,$
-		ccf2_velrange:20000d,$ ;20000
+		ccf2_velrange:15000d,$ ;20000
 		ccf2_nvel:501d,$
 		ccf1_nterms:5,$
-		ccf2_nterms:5}
+		ccf2_nterms:4,$
+		telluric_spec:'',$
+		tell_excl_level:.99}
 		
 	out_names = tag_names(out)
 	;Set init_params if they are input

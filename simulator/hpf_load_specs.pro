@@ -39,8 +39,10 @@ pro hpf_load_specs, spec_params, det_params
 
 	c = 2.99792458d8	; m/s
 	h = 6.626d-34 ;J s
-	minl = .7d
-	maxl = 1.4d
+;	minl = .7d
+;	maxl = 1.4d
+	minl = hpf_spec_params.minl
+	maxl = hpf_spec_params.maxl
 	
 	for i=0, n_elements(spec_params.spec_file)-1 do begin
 		

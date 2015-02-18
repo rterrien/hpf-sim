@@ -50,7 +50,9 @@ function hpf_initialize_spec_params, init_params = init_params
 		normalize_output:[0,0,0], $
 		output_per_wavelength:[1,1,0], $ 
 		lfc_lims:make_array(2,3,/double,value=!values.f_nan), $
-		lfc_lims_flag:0 }
+		lfc_lims_flag:0 ,$
+		minl:.7 $ ;limits of input spectrum in microns
+		maxl:1.4 }
 	
 	out_names = tag_names(out)
 	;Set init_params if they are input

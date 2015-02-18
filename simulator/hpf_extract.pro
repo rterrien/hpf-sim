@@ -67,6 +67,7 @@ pro hpf_extract, spec_params, optical_params, proj_params, det_params, infile, o
 	
 	norders = (size(proj_params.xs))[2]
 	nspec = n_elements(spec_params.spec_file)
+	n_pixels = optical_params.n_pixels
 
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;; FIBER and KERNEL PARAMETERS
@@ -98,10 +99,10 @@ pro hpf_extract, spec_params, optical_params, proj_params, det_params, infile, o
 	image=MRDFITS(infile, 0, hdr)
 
 
-	extracted_fl = dblarr(2048,norders,nspec)
-	extracted_wl = dblarr(2048,norders)
-	extracted_wl_out = dblarr(2048,norders)
-	extracted_fl_out = dblarr(2048,norders,nspec)
+	extracted_fl = dblarr(n_pixels,norders,nspec)
+	extracted_wl = dblarr(n_pixels,norders)
+	extracted_wl_out = dblarr(n_pixels,norders)
+	extracted_fl_out = dblarr(n_pixels,norders,nspec)
 
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;;EXTRACT THE SPECTRA
@@ -196,12 +197,12 @@ pro hpf_extract, spec_params, optical_params, proj_params, det_params, infile, o
 
 
 			
-		xs_rect = dblarr(2048 + buffer, boxsi)
-		ys_rect = dblarr(2048 + buffer, boxsi)
-		xs_rect_left = dblarr(2048 + buffer, boxsi)
-		xs_rect_right = dblarr(2048 + buffer, boxsi)
-		ys_rect_left = dblarr(2048 + buffer, boxsi)
-		ys_rect_right = dblarr(2048 + buffer, boxsi)
+		xs_rect = dblarr(n_pixels + buffer, boxsi)
+		ys_rect = dblarr(n_pixels + buffer, boxsi)
+		xs_rect_left = dblarr(n_pixels + buffer, boxsi)
+		xs_rect_right = dblarr(n_pixels + buffer, boxsi)
+		ys_rect_left = dblarr(n_pixels + buffer, boxsi)
+		ys_rect_right = dblarr(n_pixels + buffer, boxsi)
 		
 		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 		;;RECREATE THE ARRAYS USED FOR THE FLUX ARRAY WARPING

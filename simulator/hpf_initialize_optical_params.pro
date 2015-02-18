@@ -56,7 +56,9 @@ function hpf_initialize_optical_params, init_params = init_params
 		extra_orders_blue:2, $
 		extra_orders_red:2, $
 		reimager_kernel:0 ,$
-		slit_angle:0d} ;degrees
+		slit_angle:0d, $
+		pixel_size:18d-3, $
+		n_pixels:2048d } ;degrees
 		
 	out_names = tag_names(out)
 	;Set init_params if they are input

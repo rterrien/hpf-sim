@@ -47,7 +47,7 @@ function hpf_initialize_optical_params, init_params = init_params
 		orders_shape: 0, $
 		orders_inty:0,$
 		wlimg_file:'', $
-		model_file:'support/model_072014_shift.sav', $ ;support/model_020714_shift.sav
+		model_file:'support/model_020714_shift.sav', $ ;support/model_020714_shift.sav
 		kernel_type:'step3_tilt', $ ;or gaussian or hrs or step3 or circlehat or step3_tilt
 		warp_style:'polyclip', $ ;polyclip or tri_surf
 		extract_width_mod:2, $
@@ -56,9 +56,7 @@ function hpf_initialize_optical_params, init_params = init_params
 		extra_orders_blue:2, $
 		extra_orders_red:2, $
 		reimager_kernel:0 ,$
-		slit_angle:0d, $
-		pixel_size:18d-3, $
-		n_pixels:2048d } ;degrees
+		slit_angle:0d} ;degrees
 		
 	out_names = tag_names(out)
 	;Set init_params if they are input

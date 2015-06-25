@@ -39,10 +39,8 @@ pro hpf_load_specs, spec_params, det_params
 
 	c = 2.99792458d8	; m/s
 	h = 6.626d-34 ;J s
-;	minl = .7d
-;	maxl = 1.4d
-	minl = spec_params.minl
-	maxl = spec_params.maxl
+	minl = .7d
+	maxl = 1.4d
 	
 	for i=0, n_elements(spec_params.spec_file)-1 do begin
 		
@@ -115,10 +113,8 @@ pro hpf_load_specs, spec_params, det_params
 				tellspec = mrdfits(spec_params.tellcontam_file[i]) ; expect wavelength in microns, y 0-1
 				tellw = reform(tellspec[0,*])
 				tellf = reform(tellspec[1,*])
-				cl = where((w ge min(tellw)) and (w le max(tellw)),ncl)
-				if ncl eq 0 then stop 
-				contam = interpol(tellf,tellw,w[cl])
-				f[cl] = f[cl] * contam
+				contam = interpol(tellf,tellw,w)
+				f = f * contam
 			endif
 
 			;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -208,21 +204,7 @@ pro hpf_load_specs, spec_params, det_params
 				if nhi ne 0 then qes[ohi] = qes[ohi[0]-1]
 				f = f * qes
 			endif
-			
-			;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-			;; Cut out dead regions of LFC
-			;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-			if spec_params.lfc_lims_flag eq 1 then begin
-				gg = dblarr(n_elements(w))
-				for j=0,(size(spec_params.lfc_lims,/dimen))[1]-1 do begin
-					ggi = where( (w ge spec_params.lfc_lims[0,j]) and (w le spec_params.lfc_lims[1,j]),nggi)
-					if nggi ne 0 then begin
-						gg[ggi] = 1.
-					endif
-				endfor
-				bbi = where(gg eq 0, nbbi)
-				if nbbi ne 0 then f[bbi] = 1d-3 * median(f)
-			endif
+
 			
 			;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 			;;CONVERT TO PHOTONS
@@ -305,37 +287,37 @@ pro hpf_load_specs, spec_params, det_params
 			f = *spec_params.fl[0]
 			f[*] = mean(*spec_params.fl[0],/nan)
 			if f[0] eq 0d then f[*] = 1d
-		
-			;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-			;;TELLURIC CONTAMINATE IF NECESSARY
-			;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-			;do this while spectrum is still in energy
-			if spec_params.tellcontam_flag[i] then begin
-			tellspec = mrdfits(spec_params.tellcontam_file[i]) ; expect wavelength in microns, y 0-1
-			tellw = reform(tellspec[0,*])
-			tellf = reform(tellspec[1,*])
-			contam = interpol(tellf,tellw,w)
-			f = f * contam
-			endif
+			
+	    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      ;;TELLURIC CONTAMINATE IF NECESSARY
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      ;do this while spectrum is still in energy
+      if spec_params.tellcontam_flag[i] then begin
+        tellspec = mrdfits(spec_params.tellcontam_file[i]) ; expect wavelength in microns, y 0-1
+        tellw = reform(tellspec[0,*])
+        tellf = reform(tellspec[1,*])
+        contam = interpol(tellf,tellw,w)
+        f = f * contam
+      endif
+      
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      ;; FILTER
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      
+      if spec_params.filter[i] ne 1d then begin
+        f = f * double(spec_params.filter[i])
+      endif
 
-			;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-			;; FILTER
-			;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-			if spec_params.filter[i] ne 1d then begin
-			f = f * double(spec_params.filter[i])
-			endif
-
-
-				;temporary make 1061 - 1065 illuminated
-				;every .5nm alternate
-			;;			mf = mean(*spec_params.fl[0],/nan)
-			;;			test = (w*1d4) mod 10.
-			;;			on = where(test gt 5.,complement = off)
-			;;			f[on] = mf
-			;;			f[off] = mf/2d
-			;;			f[where(w lt 1.061)] = 0d
-			;;			f[where(w gt 1.065)] = 0d
+	
+			;temporary make 1061 - 1065 illuminated
+			;every .5nm alternate
+;;			mf = mean(*spec_params.fl[0],/nan)
+;;			test = (w*1d4) mod 10.
+;;			on = where(test gt 5.,complement = off)
+;;			f[on] = mf
+;;			f[off] = mf/2d
+;;			f[where(w lt 1.061)] = 0d
+;;			f[where(w gt 1.065)] = 0d
 		end
 		else: message,'unknown spectrum type'
 		endcase

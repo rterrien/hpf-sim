@@ -37,7 +37,7 @@ function hpf_process_optical_model, optical_params
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-	;pixel_size = 18d-3 ;mm
+	pixel_size = 18d-3 ;mm
 	
 	restore, optical_params.model_file
 	
@@ -55,8 +55,6 @@ function hpf_process_optical_model, optical_params
 	buffer = 100.
 	upfactor = optical_params.projection_upsample
 	convol_upfactor = optical_params.convol_upsample
-	n_pixels = optical_params.n_pixels
-	pixel_size = optical_params.pixel_size
 	
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;;MODIFY ORDER SHAPES IF NECESSARY
@@ -82,51 +80,51 @@ function hpf_process_optical_model, optical_params
 	;;PROCESS ECHELLOGRAM INFO
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	
-	fs_base = dblarr((n_pixels + buffer)*upfactor,norders,nfibers)
-	fs_base_convol = dblarr((n_pixels + buffer)*convol_upfactor,norders,nfibers)
+	fs_base = dblarr((2048 + buffer)*upfactor,norders,nfibers)
+	fs_base_convol = dblarr((2048 + buffer)*convol_upfactor,norders,nfibers)
 	
-	xs_base = ((dindgen((n_pixels+buffer)*upfactor) - (1024.+buffer/2d)*upfactor)/upfactor)
-	ws_base = dblarr((n_pixels + buffer)*upfactor,norders)
+	xs_base = ((dindgen((2048+buffer)*upfactor) - (1024.+buffer/2d)*upfactor)/upfactor)
+	ws_base = dblarr((2048 + buffer)*upfactor,norders)
 	
-	ws_base_convol = dblarr((n_pixels + buffer) * convol_upfactor,norders)
-	xs_base_convol = ((dindgen((n_pixels+buffer)*convol_upfactor) - (1024.+buffer/2d)*convol_upfactor)/convol_upfactor)
+	ws_base_convol = dblarr((2048 + buffer) * convol_upfactor,norders)
+	xs_base_convol = ((dindgen((2048+buffer)*convol_upfactor) - (1024.+buffer/2d)*convol_upfactor)/convol_upfactor)
 	
-	fs_base_noup = dblarr((n_pixels + buffer),norders,nfibers)
-	xs_base_noup = ((dindgen((n_pixels+buffer)) - (1024.+buffer/2d)))
-	ws_base_noup = dblarr((n_pixels + buffer),norders)
+	fs_base_noup = dblarr((2048 + buffer),norders,nfibers)
+	xs_base_noup = ((dindgen((2048+buffer)) - (1024.+buffer/2d)))
+	ws_base_noup = dblarr((2048 + buffer),norders)
 
 	
 	;find left and right limits of each pixel for binning the spectrum
 	xs_base_left = xs_base - 0.5 / double(upfactor)
 	xs_base_right = xs_base + 0.5 / double(upfactor)
-	ws_base_left = dindgen((n_pixels + buffer) * upfactor,norders)
-	ws_base_right = dindgen((n_pixels + buffer) * upfactor,norders)
+	ws_base_left = dindgen((2048 + buffer) * upfactor,norders)
+	ws_base_right = dindgen((2048 + buffer) * upfactor,norders)
 	
 	xs_base_left_convol = xs_base_convol - 0.5/double(convol_upfactor)
 	xs_base_right_convol = xs_base_convol + 0.5/double(convol_upfactor)
-	ws_base_left_convol = dindgen((n_pixels + buffer) * convol_upfactor,norders)
-	ws_base_right_convol = dindgen((n_pixels + buffer) * convol_upfactor,norders)
+	ws_base_left_convol = dindgen((2048 + buffer) * convol_upfactor,norders)
+	ws_base_right_convol = dindgen((2048 + buffer) * convol_upfactor,norders)
 	
-	ys_base = dblarr((n_pixels + buffer) * upfactor,norders)
-	xs_base_2d = dblarr((n_pixels + buffer) * upfactor,norders)
+	ys_base = dblarr((2048 + buffer) * upfactor,norders)
+	xs_base_2d = dblarr((2048 + buffer) * upfactor,norders)
 	
-	ys_base_left = dblarr((n_pixels + buffer) * upfactor,norders)
-	ys_base_right = dblarr((n_pixels + buffer) * upfactor,norders)
+	ys_base_left = dblarr((2048. + buffer) * upfactor,norders)
+	ys_base_right = dblarr((2048. + buffer) * upfactor,norders)
 	
 	xs_base_left_noup = xs_base_noup - 0.5
 	xs_base_right_noup = xs_base_noup + 0.5
-	ws_base_left_noup = dindgen((n_pixels + buffer),norders)
-	ws_base_right_noup = dindgen((n_pixels + buffer),norders)
-	ys_base_noup = dblarr((n_pixels + buffer),norders)
-	xs_base_2d_noup = dblarr((n_pixels + buffer),norders)
-	ys_base_right_noup = dblarr((n_pixels + buffer),norders)
-	ys_base_left_noup = dblarr((n_pixels + buffer),norders)
+	ws_base_left_noup = dindgen((2048 + buffer),norders)
+	ws_base_right_noup = dindgen((2048 + buffer),norders)
+	ys_base_noup = dblarr((2048 + buffer),norders)
+	xs_base_2d_noup = dblarr((2048 + buffer),norders)
+	ys_base_right_noup = dblarr((2048 + buffer),norders)
+	ys_base_left_noup = dblarr((2048 + buffer),norders)
 
 
 	;fill in the wavelengths that correspond to each bin and the edge of each bin
 	;note that wavelength depends only on x-position
 	for i=0, norders-1 do begin
-		;for each order, there are n_pixels x pixels
+		;for each order, there are 2048 x pixels
 		;derive the wl for each pixel based on the x/wl map alone
 		start = [0d,0d,0d]
 		if optical_params.orders_shape eq 4 then start = [0d,0d]
@@ -143,7 +141,6 @@ function hpf_process_optical_model, optical_params
 		ws_base_left_convol[*,i] = poly(xs_base_left_convol,w1a)
 		ws_base_right_convol[*,i] = poly(xs_base_right_convol,w1a)
 		ws_base_convol[*,i] = (ws_base_left_convol[*,i] + ws_base_right_convol[*,i])/2d
-		;if i eq 10 then stop
 		;above on to work
 		
 ;;		dw1 = (ws_base[1:*,i] - ws_base[*,i])/2d

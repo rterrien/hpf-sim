@@ -29,41 +29,51 @@
 ; MODIFICATION HISTORY:
 ;
 ;  Written by: Ryan Terrien 02-12-2014
+;		03-13-14: RCT modified to stretch inner 6.5 pixels, maintain edge shapes
 ;-
 
 
 function hrs_kernel_1d, npix, width
-	t1 = [35454.459d,35367.913,34272.269,28004.848,8753.4973,743.31283,146.71539,25.814310,7.9165832,0.0000000,0.0000000,0.0000000,0.0000000,0.0000000]
-	t1 = t1/max(t1)
+
+	; Input kernel as read off from an average of beams on an HRS image
 	
-	x1 = dindgen(n_elements(t1))
+	;t1a = [35454.459d,35367.913,34272.269,28004.848,8753.4973,743.31283,146.71539,25.814310,7.9165832,0.0000000,0.0000000,0.0000000,0.0000000,0.0000000]
+	t1a = [35454.459d,35367.913,34272.269,28004.848,8753.4973,743.31283,146.71539,25.814310,7.9165832,1.0000000,0.1000000,0.0100000,0.0010000,0.0001000]
+
+	t1a = t1a/max(t1a)
 	
+	x1a = dindgen(n_elements(t1a))
+	
+	; Assume fiber width is 6.5 pixels (info from chad)
 	p0 = 6.5
+	scale = width / p0
 	
-	scale = width / 6.5
+	; Upsample to get to 6.5/2 = 3.25, quarter pixels
+	x1 = dindgen(n_elements(t1a)*4)/4.
+	t1 = interpol(t1a,x1a,x1)
 	
 	x2 = x1
-	
-	x2[1] = scale
-	x2[2:*] = (scale - 1d) + x2[2:*]
-	
-	;try scaling whole thing
-	x2 = x1 * scale
-	
 
-	if npix mod 2 eq 0 then begin
-		print,'NEED ODD # PIXELS'
-		return,!values.f_nan
-	endif
+	; Stretch inner 3.25 pixels to make top hat wider
+	x2[0:13] = x2[0:13]*scale
+	xoffset = x2[14]*scale - x2[14]
+	x2[14:*] = x2[14:*] + xoffset
+
+;;	if npix mod 2 eq 0 then begin
+;;		print,'NEED ODD # PIXELS'
+;;		return,!values.f_nan
+;;	endif
 	
+	; Generate distance (from center) array
 	xs = abs(dindgen(npix) - npix/2)
 	
+	; Calculate value for each distance
 	ys = interpol(t1,x2,xs)
 	ngtm = where(xs gt max(xs),nn)
 	if nn ge 1 then ys[ngtm] = 0d
 	
+	; Normalize
 	tot = total(ys,/double)
-	
 	ys /= tot
 	
 	return, ys

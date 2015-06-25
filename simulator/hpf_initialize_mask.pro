@@ -49,9 +49,7 @@ function hpf_initialize_mask, spec_params, init_params = init_params
 		ccf2_velrange:15000d,$ ;20000
 		ccf2_nvel:501d,$
 		ccf1_nterms:5,$
-		ccf2_nterms:4,$
-		telluric_spec:'',$
-		tell_excl_level:.99}
+		ccf2_nterms:4}
 		
 	out_names = tag_names(out)
 	;Set init_params if they are input

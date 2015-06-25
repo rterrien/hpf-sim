@@ -13,6 +13,7 @@ function where_am_i
 	
 	c = getenv('HOSTNAME')
 	if strmid(c,0,6) eq 'hammer' then return, 2
+	if strmid(c,0,4) eq 'lion' then return, 3
 	
 	return, -1
 	

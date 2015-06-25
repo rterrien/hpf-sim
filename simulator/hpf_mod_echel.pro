@@ -41,6 +41,7 @@ pro hpf_mod_echel, xs_in, ys_in, ws_in, xs_out, ys_out, ws_out, ver=ver
 	;ver = 1, flat orders
 	;ver = 2, linear y
 	;ver = 3, curved with less curvature
+	;ver = 4, flat orders + linear wavelengths
 	ys = ys_in
 	sy = size(ys,/dimen)
 	if n_elements(ver) eq 0 then ver = 0
@@ -57,6 +58,7 @@ pro hpf_mod_echel, xs_in, ys_in, ws_in, xs_out, ys_out, ws_out, ver=ver
 		for i=0, sy[1]-1 do begin
 			ys[*,i] = mean(ys[*,i])
 		endfor
+		ws = ws_in
 	end
 	2: begin
 		for i=0, sy[1]-1 do begin
@@ -64,6 +66,7 @@ pro hpf_mod_echel, xs_in, ys_in, ws_in, xs_out, ys_out, ws_out, ver=ver
 			dy1 = dy[0] * .1d
 			ys[*,i] = ys[0,i] + ab * dy1
 		endfor
+		ws = ws_in
 	end
 	3: begin
 		for i=0, sy[1]-1 do begin
@@ -72,6 +75,18 @@ pro hpf_mod_echel, xs_in, ys_in, ws_in, xs_out, ys_out, ws_out, ver=ver
 				my = (ly + ys[j,i])/2d
 				ys[j,i] = my
 			endfor
+		endfor
+		ws = ws_in
+	end
+	4: begin
+		ws = ws_in
+		sw = size(ws,/dimen)
+		wx = dindgen(sw[0])
+		for i=0, sy[1]-1 do begin
+			ys[*,i] = mean(ys[*,i])
+			dw = ws[1,i] - ws[0,i]
+			wst = wx * dw + ws[0,i]
+			ws[*,i] = wst
 		endfor
 	end
 	endcase
@@ -86,8 +101,8 @@ pro hpf_mod_echel, xs_in, ys_in, ws_in, xs_out, ys_out, ws_out, ver=ver
 ;;	for i=0, sx[0]-1 do xs[i,*] = xs[i,0]
 	
 	
-	ws = ws_in
-	sw = size(ws,/dimen)
+;	ws = ws_in
+;	sw = size(ws,/dimen)
 ;;	for i=0, sw[1] - 1 do begin
 ;;		dw = ws[1,i] - ws[0,i]
 ;;;;		dw = 1.1d * dw * 0.847

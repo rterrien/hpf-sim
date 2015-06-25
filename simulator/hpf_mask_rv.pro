@@ -153,11 +153,10 @@ function hpf_mask_rv, spec_params, mask_params, spec_struct
 	;IMPLEMENT THIS LATER RCT 12-5-13 
 	;NEED A PROCESSED TELLURIC SPECTRUM???
 	if keyword_set(mask_params.excl_tell) then begin
-		tellspec = mrdfits(mask_params.telluric_spec)
+		tellspec = mrdfits('TELLFILE HERE')
 		tellwl = reform(tellspec[0,*])
 		tellfl = reform(tellspec[1,*])
-		
-		bad = where(tellfl lt mask_params.tell_excl_level, nbad) ;originally .98
+		bad = where(tellfl lt .98, nbad)
 		tellba = dblarr(n_elements(tellfl))
 		tellba[*] = 0.d
 		tellba[bad] = 1.d

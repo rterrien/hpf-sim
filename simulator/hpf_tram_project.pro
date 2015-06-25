@@ -52,17 +52,16 @@ pro hpf_tram_project, spec_params, optical_params, proj_params, det_params, out_
 	
 	upfactor = optical_params.projection_upsample
 	convol_upfactor = optical_params.convol_upsample
-	n_pixels = optical_params.n_pixels
 	
 	n_specs = n_elements(spec_params.spec_file)
 	
-	fs_det = dblarr(n_pixels,n_pixels) ; detector array
+	fs_det = dblarr(2048,2048) ; detector array
 	
 	norders = (size(proj_params.xs))[2]
 	
 	if keyword_set(generate_wlimg) then begin
-		warray = dblarr(n_pixels,norders)
-		bins_warray = dblarr(n_pixels,norders)
+		warray = dblarr(2048,norders)
+		bins_warray = dblarr(2048,norders)
 	endif
    
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -166,23 +165,22 @@ pro hpf_tram_project, spec_params, optical_params, proj_params, det_params, out_
 		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 		if keyword_set(generate_wlimg) then begin
-			warray[*,i] = (rebin(ws_base_convol,n_pixels+buffer,norders))[buffer/2 : 2047 + buffer/2,i]
+			warray[*,i] = (rebin(ws_base_convol,2048+buffer,norders))[buffer/2 : 2047 + buffer/2,i]
 			wbins = abs(ws_base_right_noup - ws_base_left_noup)
 			bins_warray[*,i] = wbins[buffer/2 : 2047 + buffer/2,i]
-			;if i eq 10 then stop
 		endif
 		
 		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 		;;CREATE/FILL IN RECTIFIED ARRAYS
 		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 			
-		xs_rect = dblarr((n_pixels+buffer)*upfactor,200*1d)
-		ys_rect = dblarr((n_pixels+buffer)*upfactor,200*1d)
-		fs_rect = dblarr((n_pixels+buffer)*convol_upfactor,200*1d)
-		xs_rect_left = dblarr((n_pixels+buffer)*upfactor,200*upfactor)
-		xs_rect_right = dblarr((n_pixels+buffer)*upfactor,200*upfactor)
-		ys_rect_left = dblarr((n_pixels+buffer)*upfactor,200*upfactor)
-		ys_rect_right = dblarr((n_pixels+buffer)*upfactor,200*upfactor)
+		xs_rect = dblarr((2048+buffer)*upfactor,200*1d)
+		ys_rect = dblarr((2048+buffer)*upfactor,200*1d)
+		fs_rect = dblarr((2048+buffer)*convol_upfactor,200*1d)
+		xs_rect_left = dblarr((2048+buffer)*upfactor,200*upfactor)
+		xs_rect_right = dblarr((2048+buffer)*upfactor,200*upfactor)
+		ys_rect_left = dblarr((2048+buffer)*upfactor,200*upfactor)
+		ys_rect_right = dblarr((2048+buffer)*upfactor,200*upfactor)
 		
 		;for warping
 		for j=0, 199 do begin

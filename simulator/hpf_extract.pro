@@ -67,7 +67,6 @@ pro hpf_extract, spec_params, optical_params, proj_params, det_params, infile, o
 	
 	norders = (size(proj_params.xs))[2]
 	nspec = n_elements(spec_params.spec_file)
-	n_pixels = optical_params.n_pixels
 
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;; FIBER and KERNEL PARAMETERS
@@ -99,10 +98,10 @@ pro hpf_extract, spec_params, optical_params, proj_params, det_params, infile, o
 	image=MRDFITS(infile, 0, hdr)
 
 
-	extracted_fl = dblarr(n_pixels,norders,nspec)
-	extracted_wl = dblarr(n_pixels,norders)
-	extracted_wl_out = dblarr(n_pixels,norders)
-	extracted_fl_out = dblarr(n_pixels,norders,nspec)
+	extracted_fl = dblarr(2048,norders,nspec)
+	extracted_wl = dblarr(2048,norders)
+	extracted_wl_out = dblarr(2048,norders)
+	extracted_fl_out = dblarr(2048,norders,nspec)
 
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;;EXTRACT THE SPECTRA
@@ -161,48 +160,13 @@ pro hpf_extract, spec_params, optical_params, proj_params, det_params, infile, o
 			if i ge 23 then offset -= 1
 			if i ge 25 then offset -= 1
 		endif
-		
-		if (optical_params.model_file eq 'support/model_072014_shift.sav') and (optical_params.orders_shape eq 0) then begin
-			;boxsi = 400.
-			if i le 10 then offset = 60. - i * 2.
-			if i gt 10 and i lt 15 then offset = 60 - i*1.75
-			if i ge 15 and i lt 20 then offset = 33 - (15-i) *1.5
-			if i eq 20 then offset = 23
-			if i ge 20 then offset = 28 ;- (i-20.) * 1.
-			;mid_offset = 58.
-		endif
-		
-		if (optical_params.model_file eq 'support/model_v1_nov30_2014.sav') and (optical_params.orders_shape eq 0) then begin
-			;boxsi = 400.
-			if i le 5 then offset = 41. - i * 1.
-			if i gt 5 and i le 6 then offset = 36.
-			if i gt 6 and i le 9 then offset = 34.
-			if i gt 9 and i le 11 then offset = 33.
-			if i gt 11 and i le 13 then offset = 31.
-			if i eq 14 then offset = 30.
-			;if i gt 13 and i le 15 then offset = 29.
-			if i gt 14 and i le 21 then offset = 30. - (i - 15) * .5
-			if i gt 21 and i le 25 then offset = 28. - (i - 21) * .5
-			if i gt 25 and i le 27 then offset = 25.
-			if i gt 27 then offset = 27. - (i - 27.) * .5
-
-			;if i le 10 then offset = 60. - i * 2.
-			;if i gt 10 and i lt 15 then offset = 60 - i*1.75
-			;if i ge 15 and i lt 20 then offset = 33 - (15-i) *1.5
-			;if i eq 20 then offset = 23
-			;if i ge 20 then offset = 28 ;- (i-20.) * 1.
-			;mid_offset = 58.
-			order_on = 30
-		endif
-
-
 			
-		xs_rect = dblarr(n_pixels + buffer, boxsi)
-		ys_rect = dblarr(n_pixels + buffer, boxsi)
-		xs_rect_left = dblarr(n_pixels + buffer, boxsi)
-		xs_rect_right = dblarr(n_pixels + buffer, boxsi)
-		ys_rect_left = dblarr(n_pixels + buffer, boxsi)
-		ys_rect_right = dblarr(n_pixels + buffer, boxsi)
+		xs_rect = dblarr(2048 + buffer, boxsi)
+		ys_rect = dblarr(2048 + buffer, boxsi)
+		xs_rect_left = dblarr(2048 + buffer, boxsi)
+		xs_rect_right = dblarr(2048 + buffer, boxsi)
+		ys_rect_left = dblarr(2048 + buffer, boxsi)
+		ys_rect_right = dblarr(2048 + buffer, boxsi)
 		
 		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 		;;RECREATE THE ARRAYS USED FOR THE FLUX ARRAY WARPING
@@ -276,14 +240,7 @@ pro hpf_extract, spec_params, optical_params, proj_params, det_params, infile, o
 				1: xoff = 0d
 				2: xoff = 0.81250000d ; ,0.5d + 0.5d/(upfactor * upfactor/2d) + 0.5d/(upfactor*4d)
 				;4: xoff = 0.59375000d ;
-				4:begin
-				  if optical_params.kernel_type eq 'step3_tilt' then begin
-				    xoff = 0.859 ;86 gave 4cm with tilted 10samples
-				    ;855 gave slightly tilted up around 8.5
-				  endif else begin
-				    xoff = 0.615d ;605 made a dip
-				  endelse
-				  end
+				4:xoff = 0.615d ;605 made a dip
 				else: stop
 				endcase
 				nnx = n_elements(xs_rect_d)
@@ -356,12 +313,10 @@ pro hpf_extract, spec_params, optical_params, proj_params, det_params, infile, o
 			good_orders[i] = 0
 			continue
 		endif
-;		display,tmp_warp
-;		hline,mid,color=cgcolor('red')
-;		hline,[yy1,yy2],color=cgcolor('blue')
-;		print,'order',i
-;		print,'offset',offset
-;		if i eq order_on then stop
+;;		display,tmp_warp
+;;		hline,mid,color=cgcolor('red')
+;;		hline,[yy1,yy2],color=cgcolor('blue')
+;;		stop
 
 		median_tmp = median(tmp_warp_sub_maxs[where(tmp_warp_sub_maxs gt 0.)],/double)
 		horiz_tot = total(tmp_warp_sub_maxs,1,/double)
@@ -481,10 +436,10 @@ pro hpf_extract, spec_params, optical_params, proj_params, det_params, infile, o
 	
 	final_fl_all = ptrarr(nspec,/allocate_heap)
 	
-	;extracted_wl_out = extracted_wl
+	extracted_wl_out = extracted_wl
 	
 	;need to reverse these to have them strung together properly?
-	if (optical_params.model_file eq 'support/model_020714_shift.sav') or (optical_params.model_file eq 'support/model_v1_nov30_2014.sav') then begin
+	if optical_params.model_file eq 'support/model_020714_shift.sav' then begin
 		good_orders = reverse(good_orders)
 		extracted_wl = reverse(extracted_wl,2)
 		extracted_fl = reverse(extracted_fl,2)
@@ -516,9 +471,7 @@ pro hpf_extract, spec_params, optical_params, proj_params, det_params, infile, o
 				subflux = subflux / fl_nvals
 			endif
 
-			extracted_fl_out[*,order,j] = subflux
-			extracted_wl_out[*,order] = subwave
-			;extracted_wl_out[*,i] = subwave
+			extracted_fl_out[*,i,j] = subflux
 			;if we're on the first order create the final arrays, otherwise append to them and fill in gaps
 			if i eq 0 then begin
 				final_wl = subwave
@@ -578,6 +531,6 @@ pro hpf_extract, spec_params, optical_params, proj_params, det_params, infile, o
 	final_array = {wl:extracted_wl_out, fl:extracted_fl_out}
 	arrname = file_basename(outfile,'.fits')
 	mwrfits,final_array,file_dirname(outfile)+'/'+arrname+'_arr.fits',/create
-	
+
 
 END          

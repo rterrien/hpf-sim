@@ -8,8 +8,8 @@ function hpf_combine_tilt_kernel, kernel_disp, kernel_xdisp, kernel_psf, angle, 
 ;	ny = 2*size_xdisp[0]
 ;  nx = 3*size_disp[0]
 ;  ny = 3*size_xdisp[0]
-  nx = size_disp[0] ;* 2.
-  ny = size_xdisp[0] ;* 2.
+  nx = size_disp[0] * 2.
+  ny = size_xdisp[0] * 2.
 
 	
 	mloc = round(size_xdisp)
@@ -17,7 +17,7 @@ function hpf_combine_tilt_kernel, kernel_disp, kernel_xdisp, kernel_psf, angle, 
 	;con1[size_disp/2 +1:size_disp/2 + size_disp-1 +1,mloc] = kernel_disp
 	;con1[size_disp +1:size_disp + size_disp-1 +1,floor(1.5*mloc)] = kernel_disp
 	
-	con1[nx/2+1,ny/2] = 1d
+	con1[nx/2,ny/2] = 1d
 	;con1[*,ny/2] = kernel_disp
 	;con1[nx/2+1,*] = transpose(kernel_xdisp)
 	;con1 = kernel_psf

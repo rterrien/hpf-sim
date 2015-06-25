@@ -64,8 +64,20 @@ pro hpf_read_detector, det, output
 		;left
 		ipc[1:*,*] += double(det.ipc_coeff[1:*,*,3] * frame[0:-2,*])
 		
+		;total lost from each pixel:
+		ipc_loss = dblarr(det.n,det.n)
+		;lost to top
+		ipc_loss[*,0:-2] += double(det.ipc_coeff[*,0:-2,2])
+		;right
+		ipc_loss[0:-2,*] += double(det.ipc_coeff[0:-2,*,3])
+		;bottom
+		ipc_loss[*,1:*] += double(det.ipc_coeff[*,1:*,0])
+		;left
+		ipc_loss[1:*,*] += double(det.ipc_coeff[1:*,*,1])
+				
 		;apply IPC
-		frame += ipc
+		frame = frame + ipc - ipc_loss * frame
+		
 	endif
 	
 	;Done accumulating, now we can AD convert and go to double

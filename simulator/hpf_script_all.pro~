@@ -179,7 +179,7 @@ pro hpf_script_all, index, datdir = datdir, outdir = outdir, nvels = nvels, skip
     orders_inty:0,$
     wlimg_file:'', $
     model_file:'support/model_020714_shift.sav', $ ;support/model_020714_shift.sav
-    kernel_type:'step3', $ ;or gaussian or hrs or step3 or circlehat or step3_tilt
+    kernel_type:'step3_tilt', $ ;or gaussian or hrs or step3 or circlehat or step3_tilt
     warp_style:'polyclip', $ ;polyclip or tri_surf
     extract_width_mod:2, $
     linear_warp:0, $

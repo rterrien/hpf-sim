@@ -126,6 +126,11 @@ function hpf_initialize_det_params, init_params = init_params
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 	det.ipc_coeff = randomu(seed,n,n,4,/normal) * det.ipc_sd + det.ipc_mean
+	;IPC cannot be <0
+	bi = where(det.ipc_coeff lt 0d, nbi)
+	if nbi gt 0 then begin
+		det.ipc_coeff[bi] = 0d
+	endif
 
 
 	return, det

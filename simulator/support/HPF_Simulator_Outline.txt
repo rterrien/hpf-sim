@@ -1,36 +1,57 @@
-HPF Simulator Outline
+Top level flow summary
+
+Initialize all parameters (for spectra, optics, exposure, extraction, detector) into structures in memory
+
+Load the spectra into memory, upsampling if required
+
+Generate mapping from rectangular space (x,y,lambda) to warped space (x,y2,lambda) using echellogram. 
+
+For each spectrum:
+For each order:
+For each pixel, integrate the total flux in a given x/lambda bin
+Lay out on 1-pixel horizontal lines in rectangular space
+Lay onto detector array
+
+Expose according to parameters
+
+Extract
+For each order:
+warp according to inverse of original mapping used
+Find the peaks in the horizontal-collapsed order, sum-extract the flux
+Map x coordinates to wavelengths based on known original mapping
+
+Analyze
+Mask-xcorrelation, twice (wide range to define location of peak, then fit the peak alone)
+
+
 
 STRUCTURE OF ROUTINES
 
-hpf_script_all
+hpf_script_all - Run all routines, set options for all parameters (defaults set by "initialize" routines)
 
-	where_am_i()
+	where_am_i() - What system are we on
 
-	hpf_initialize_det_params()
+	hpf_initialize_det_params() - Load QE, detector format, noise parameters
 		
-		hpf_qe_function_lookup()
+		hpf_qe_function_lookup() - 
 	
-	hpf_initialize_spec_params()
+	hpf_initialize_spec_params() - Set options for each spectrum: stellar/cal/flat, brightness, RV shift, upsampling, whether to normalize on extraction
 	
-	hpf_load_specs
+	hpf_load_specs - Load, scale, upsample, telluric contaminate
 	
-	hpf_initialize_optical_params()
+	hpf_initialize_optical_params() - Define fiber output geometry, upsampling in projection, what kernel to use, what echellogram to use
 	
-	hpf_process_optical_model()
+	hpf_process_optical_model() - Based on the detector/fiber/echellogram parameters, generate mapping of x/y/wl to pixels and pixel edges
 	
-		hpf_mod_echel
+		hpf_mod_echel - Modify shapes of orders for diagnostic purposes
 	
 	[PROJECT]
-	hpf_apply_velshift
+	hpf_apply_velshift - 
 	
-	hpf_tram_project
-		
-		hrs_kernel_1d()
-		
-		hrs_kernel_2d()
-	
+	hpf_tram_project - The hard one: lay out "tramlines" based on x pixels/edges (wavelength) defined above, convolve the rectified arrays, use polygon clipping algorithm (or other) to lay onto rectilinear grid. Many different kernel options available, but the default "step3" one separates out the dispersion and x-dispersion kernel convolutions, as well as the 2d camera psf convolution. If there is somewhere where things could be improved I bet this routine is it.
+			
 	[EXPOSE]
-	hpf_expose_cds
+	hpf_expose_cds - Control the detector reset, accumulate, read functions
 		
 		hpf_reset_detector
 		
@@ -41,16 +62,16 @@ hpf_script_all
 		hpf_timestep_detector
 	
 	[EXTRACT]
-	hpf_extract
+	hpf_extract - This does a rectification (inverse of the original polyclipping) based on the known echellogram. There are wags in this routine (e.g. vertical offsets) to correct for errors in my book-keeping. 
 	
-		hpf_locmax()
+		hpf_locmax() - 
 		
-		hpf_boxcarmax()
+		hpf_boxcarmax() - 
 		
 	
 	[ANALYZE]
-	hpf_initialize_mask()
+	hpf_initialize_mask() - Load in and create mask array
 	
-	hpf_mask_rv()
+	hpf_mask_rv() - Construct CCF by shifting mask edges in RV, fit two rounds of gaussians to peaks to find the center.
 	
 	

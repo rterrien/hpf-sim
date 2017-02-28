@@ -65,6 +65,8 @@ pro hpf_script_all, index, datdir = datdir, outdir = outdir, nvels = nvels, skip
 
 	if ~(keyword_set(datdir) and keyword_set(outdir)) then begin
 		computer = where_am_i()
+		; override, not sure how to ID aci-i yet
+		computer = 4
 		case computer of
 		-1: begin
 			print,'need datdir and outdir paths'
@@ -82,6 +84,9 @@ pro hpf_script_all, index, datdir = datdir, outdir = outdir, nvels = nvels, skip
 			datdir = '/gpfs/scratch/rct151/simulator/data/'
 			outdir = '/gpfs/scratch/rct151/simulator/out/'
 		end
+		4: begin
+		    datdir = '~/scratch/simulaotr/data/'
+		    outdir = '~/scratch/simulator/out/'
 		endcase
 	endif
 
@@ -142,7 +147,7 @@ pro hpf_script_all, index, datdir = datdir, outdir = outdir, nvels = nvels, skip
 	 init_optical_params = { wl:ptrarr(3,/allocate_heap), $
     fl:ptrarr(3,/allocate_heap), $
     shift_wl:ptrarr(3,/allocate_heap), $
-    spec_file:['support/bt_34_extended.fits','~/work/spectra/ffp_35_300_10nwpermode_5000.0_001.00.fits',''], $ ;'~/work/spectra/ffp_30_80.fits'
+    spec_file:['support/bt_34_extended.fits','support/ffp_35_300_10nwpermode_5000.0_001.00.fits',''], $ ;'~/work/spectra/ffp_30_80.fits'
     type:['STAR','CAL','FLAT'],$
     rv:0d, $
     rv_type:'RELATIVISTIC', $
